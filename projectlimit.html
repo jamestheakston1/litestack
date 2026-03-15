@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Limits | LiteStack</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #ffffff; color: #0f172a; }
+    </style>
+</head>
+<body class="antialiased">
+
+    <nav class="h-20 flex items-center px-6 lg:px-12 border-b border-slate-50">
+        <div class="max-w-4xl mx-auto w-full flex justify-between items-center">
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="window.location.href='/app.html'">
+                <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-arrow-left text-white text-xs"></i>
+                </div>
+                <span class="text-lg font-bold">Back to Dashboard</span>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-4xl mx-auto px-6 py-20">
+        <div class="text-center mb-16">
+            <h1 class="text-5xl font-[900] tracking-tight mb-6">Our Free Tier Commitment</h1>
+            <p class="text-slate-500 text-xl font-medium max-w-2xl mx-auto leading-relaxed">
+                We believe in keeping the web accessible. To provide a high-performance hosting service at zero cost, we have to maintain strict resource limits.
+            </p>
+        </div>
+
+        <div class="bg-blue-50 rounded-[2.5rem] p-10 mb-12 border border-blue-100">
+            <h2 class="text-2xl font-extrabold mb-6 flex items-center">
+                <i class="fas fa-list-check mr-4 text-blue-600"></i> Your Current Projects
+            </h2>
+            <div id="projectList" class="space-y-4">
+                <div class="text-slate-400 italic">Checking your projects...</div>
+            </div>
+            <div class="mt-8 pt-8 border-t border-blue-200">
+                <div class="flex justify-between items-center">
+                    <span class="font-bold text-slate-600 uppercase tracking-widest text-xs">Capacity Used</span>
+                    <span id="capacityLabel" class="font-black text-blue-600">0 / 2</span>
+                </div>
+                <div class="w-full h-3 bg-blue-100 rounded-full mt-4 overflow-hidden">
+                    <div id="capacityBar" class="h-full bg-blue-600 transition-all duration-1000" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-12 text-slate-600 leading-relaxed font-medium">
+            <div>
+                <h3 class="text-slate-900 font-extrabold text-xl mb-4">Why is there a limit?</h3>
+                <p>Every project deployed on LiteStack requires global edge propagation, storage, and computing power. To keep this service free for everyone without ads or selling data, we must manage our infrastructure costs carefully. Adding a 3rd project to every user would exponentially increase our overhead.</p>
+            </div>
+            <div>
+                <h3 class="text-slate-900 font-extrabold text-xl mb-4">What can I do?</h3>
+                <p>If you need to start a new project, you can delete one of your existing unused projects from the dashboard. This frees up resources for your new creation while ensuring we can keep LiteStack running for the entire community.</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const supabaseClient = supabase.createClient('https://sykhfbuvevixbxfrbysa.supabase.co', 'sb_publishable_mocH3Iz2GQ_FQaB0d8LbEQ_szHXLp93');
+
+        async function loadProjectInfo() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) return;
+
+            const { data: projects } = await supabaseClient
+                .from('projects')
+                .select('name, project_id')
+                .eq('user_id', session.user.id);
+
+            const list = document.getElementById('projectList');
+            const label = document.getElementById('capacityLabel');
+            const bar = document.getElementById('capacityBar');
+
+            if (projects && projects.length > 0) {
+                list.innerHTML = projects.map(p => `
+                    <div class="bg-white p-6 rounded-2xl flex justify-between items-center shadow-sm">
+                        <span class="font-extrabold">${p.name}</span>
+                        <code class="text-xs bg-slate-50 px-3 py-1 rounded-lg text-slate-500">${p.project_id}</code>
+                    </div>
+                `).join('');
+                
+                const count = projects.length;
+                label.innerText = `${count} / 2`;
+                bar.style.width = `${(count / 2) * 100}%`;
+            } else {
+                list.innerHTML = `<div class="bg-white/50 p-6 rounded-2xl text-center text-slate-500 border border-dashed border-blue-200">You haven't created any projects yet.</div>`;
+            }
+        }
+
+        loadProjectInfo();
+    </script>
+</body>
+</html>
