@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loading Site...</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: sans-serif; }
+        .error-container { display: flex; flex-direction: column; items-center; justify-content: center; height: 100vh; text-align: center; background: #f9fafb; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #2563eb; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div id="status" class="error-container">
+        <div class="loader"></div>
+        <p>Loading your LiteStack site...</p>
+    </div>
+
+    <script>
+        const supabaseClient = supabase.createClient('https://sykhfbuvevixbxfrbysa.supabase.co', 'sb_publishable_mocH3Iz2GQ_FQaB0d8LbEQ_szHXLp93');
+
+        async function loadSite() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const siteName = urlParams.get('site');
+
+            if (!siteName) {
+                showError("No site specified in the URL.");
+                return;
+            }
+
+            const { data: project, error: pError } = await supabaseClient
+                .from('projects')
+                .select('id')
+                .eq('name', siteName)
+                .single();
+
+            if (pError || !project) {
+                showError("Site not found. Check the URL or deployment status.");
+                return;
+            }
+
+            const { data: file, error: fError } = await supabaseClient
+                .from('project_files')
+                .select('content')
+                .eq('project_id', project.id)
+                .eq('name', 'index.html')
+                .single();
+
+            if (fError || !file) {
+                showError("This site has no index.html file.");
+                return;
+            }
+
+            document.open();
+            document.write(file.content);
+            document.close();
+        }
+
+        function showError(msg) {
+            document.getElementById('status').innerHTML = `
+                <h1 style="color: #111; font-size: 2rem; margin-bottom: 10px;">404</h1>
+                <p style="color: #666;">${msg}</p>
+                <a href="/" style="margin-top: 20px; color: #2563eb; text-decoration: none; font-weight: bold;">Return to Dashboard</a>
+            `;
+        }
+
+        loadSite();
+    </script>
+</body>
+</html>
