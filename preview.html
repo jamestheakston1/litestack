@@ -19,7 +19,11 @@
     </div>
 
     <script>
-        const supabaseClient = supabase.createClient('https://sykhfbuvevixbxfrbysa.supabase.co', 'sb_publishable_mocH3Iz2GQ_FQaB0d8LbEQ_szHXLp93');
+        const supabaseClient = supabase.createClient(
+            'https://sykhfbuvevixbxfrbysa.supabase.co', 
+            'sb_publishable_mocH3Iz2GQ_FQaB0d8LbEQ_szHXLp93'
+        );
+
         const urlParams = new URLSearchParams(window.location.search);
         const siteName = urlParams.get('site');
         const pageName = urlParams.get('page') || 'index.html';
@@ -94,9 +98,19 @@
                 const link = e.target.closest('a');
                 if (link) {
                     const href = link.getAttribute('href');
-                    if (href && !href.startsWith('http') && !href.startsWith('//') && !href.startsWith('mailto:') && !href.startsWith('#')) {
+                    if (!href) return;
+
+                    // Determine if link is external
+                    const isExternal = href.startsWith('http://') || href.startsWith('https://') || href.startsWith('//') || href.startsWith('mailto:');
+
+                    if (isExternal) {
                         e.preventDefault();
-                        
+                        // Open external link in new tab
+                        window.open(href, '_blank');
+                    } else if (!href.startsWith('#')) {
+                        // Internal navigation
+                        e.preventDefault();
+
                         loading.style.display = 'flex';
                         loading.style.opacity = '1';
 
