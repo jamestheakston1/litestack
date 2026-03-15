@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | LiteStack</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f9fafb; color: #111111; }
+        .glass { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); }
+    </style>
+</head>
+<body class="antialiased">
+
+    <nav class="border-b border-gray-200 bg-white sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-blue-600 rounded flex items-center justify-center">
+                        <i class="fas fa-layer-group text-white text-xs"></i>
+                    </div>
+                    <span class="text-xl font-bold tracking-tight">LiteStack</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span id="userEmail" class="text-sm text-gray-500 font-medium hidden md:block"></span>
+                    <button onclick="handleLogout()" class="text-sm font-semibold text-gray-700 hover:text-red-600 transition">Logout</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div class="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Projects</h1>
+                <p class="text-gray-500">Manage all your projects</p>
+            </div>
+            <button id="newProjectBtn" onclick="openNewProjectModal()" class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-100 disabled:opacity-50 disabled:cursor-not-allowed">
+                <i class="fas fa-plus mr-2"></i> New Project
+            </button>
+        </div>
+
+        <div id="projectLimitNotice" class="hidden mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm flex items-center">
+            <i class="fas fa-info-circle mr-3"></i>
+            You've reached the limit of 2 projects on the free tier.
+        </div>
+
+        <div id="projectsGrid" class="grid md:grid-cols-2 gap-6"></div>
+
+        <div id="emptyState" class="hidden flex flex-col items-center justify-center py-20 bg-white rounded-3xl border-2 border-dashed border-gray-200">
+            <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                <i class="fas fa-rocket text-gray-300 text-2xl"></i>
+            </div>
+            <p class="text-gray-400 font-medium">No projects found. Create your first one to get started.</p>
+        </div>
+    </main>
+
+    <div id="modalOverlay" class="fixed inset-0 bg-black/20 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl p-8 relative">
+            <button onclick="closeModal()" class="absolute top-6 right-6 text-gray-400 hover:text-black transition">
+                <i class="fas fa-times"></i>
+            </button>
+            <h2 class="text-2xl font-bold mb-6">New Project</h2>
+            <form id="projectForm" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-gray-400 mb-1 tracking-wider">Project Name</label>
+                    <input type="text" id="projectName" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 outline-none transition" placeholder="e.g. portfolio-site">
+                    <p class="text-[10px] text-gray-400 mt-2">URL: litestack.pages.dev/?site=<span id="slugPreview">...</span></p>
+                </div>
+                <button type="submit" id="createBtn" class="w-full bg-blue-600 text-white py-3.5 rounded-xl font-bold hover:bg-blue-700 transition">Create & Edit</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="editorOverlay" class="fixed inset-0 bg-white z-[200] hidden flex flex-col">
+        <div class="border-b border-gray-100 px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <button onclick="closeEditor()" class="text-gray-400 hover:text-black transition"><i class="fas fa-arrow-left"></i></button>
+                <h2 id="editorTitle" class="text-xl font-bold">Project Editor</h2>
+            </div>
+            <div id="editorStatus" class="text-xs text-gray-400 font-mono italic"></div>
+            <div class="flex items-center space-x-3">
+                <button onclick="addNewFile()" class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-bold hover:bg-gray-50 transition">
+                    <i class="fas fa-plus mr-2"></i> New File
+                </button>
+                <button onclick="document.getElementById('fileInput').click()" class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-bold hover:bg-gray-50 transition">
+                    <i class="fas fa-upload mr-2"></i> Upload
+                </button>
+                <input type="file" id="fileInput" class="hidden" multiple onchange="handleFileUpload(event)">
+                <button onclick="deploySite()" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition">Deploy</button>
+            </div>
+        </div>
+        <div class="flex-1 flex overflow-hidden">
+            <div class="w-72 border-r border-gray-100 bg-gray-50 p-4 overflow-y-auto">
+                <h3 class="text-xs font-bold uppercase text-gray-400 mb-4 tracking-widest">Site Files</h3>
+                <ul id="fileList" class="space-y-1"></ul>
+            </div>
+            <div class="flex-1 bg-white relative">
+                <div id="noFileSelected" class="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
+                    <i class="fas fa-file-code text-4xl mb-4 opacity-20"></i>
+                    <p>Select a file to edit or create a new one.</p>
+                </div>
+                <textarea id="fileEditor" class="hidden w-full h-full p-8 font-mono text-sm outline-none resize-none bg-gray-50" spellcheck="false"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const supabaseClient = supabase.createClient('https://sykhfbuvevixbxfrbysa.supabase.co', 'sb_publishable_mocH3Iz2GQ_FQaB0d8LbEQ_szHXLp93');
+
+        let projects = [];
+        let currentProject = null;
+        let projectFiles = []; 
+        let currentEditingFile = null;
+        let saveTimeout = null;
+
+        const SPECIAL_FILES = ['index.html', '404.html', 'robots.txt', '_worker.js', 'package.json'];
+
+        async function checkSession() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) {
+                window.location.href = '/';
+            } else {
+                document.getElementById('userEmail').innerText = session.user.email;
+                fetchProjects();
+            }
+        }
+
+        async function fetchProjects() {
+            const { data, error } = await supabaseClient
+                .from('projects')
+                .select('*')
+                .order('created_at', { ascending: false });
+            
+            if (!error) {
+                projects = data;
+                renderProjects();
+            }
+        }
+
+        function renderProjects() {
+            const grid = document.getElementById('projectsGrid');
+            const empty = document.getElementById('emptyState');
+            const limitNotice = document.getElementById('projectLimitNotice');
+            const newBtn = document.getElementById('newProjectBtn');
+
+            grid.innerHTML = '';
+            
+            if (projects.length === 0) {
+                empty.classList.remove('hidden');
+            } else {
+                empty.classList.add('hidden');
+                projects.forEach((p, index) => {
+                    const card = document.createElement('div');
+                    card.className = "bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition group";
+                    card.innerHTML = `
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center font-bold">
+                                ${p.name.charAt(0).toUpperCase()}
+                            </div>
+                            <button onclick="deleteProject('${p.id}')" class="text-gray-300 hover:text-red-500 transition"><i class="fas fa-trash-alt"></i></button>
+                        </div>
+                        <h3 class="text-lg font-bold mb-1">${p.name}</h3>
+                        <p class="text-gray-400 text-xs mb-4 font-mono">litestack.pages.dev/?site=${p.name}</p>
+                        <div class="flex space-x-3">
+                            <button onclick="openEditor(${index})" class="flex-1 bg-gray-50 text-gray-900 py-2 rounded-lg text-sm font-bold hover:bg-gray-100 transition">Manage Files</button>
+                            <a href="https://litestack.pages.dev/?site=${p.name}" target="_blank" class="px-3 bg-blue-50 text-blue-600 py-2 rounded-lg text-sm hover:bg-blue-100 transition flex items-center">
+                                <i class="fas fa-external-link-alt"></i>
+                            </a>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            }
+
+            const isLimited = projects.length >= 2;
+            limitNotice.classList.toggle('hidden', !isLimited);
+            newBtn.disabled = isLimited;
+        }
+
+        function openNewProjectModal() {
+            document.getElementById('modalOverlay').classList.remove('hidden');
+            document.getElementById('projectName').focus();
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.add('hidden');
+            document.getElementById('projectForm').reset();
+            document.getElementById('slugPreview').innerText = '...';
+        }
+
+        document.getElementById('projectName').addEventListener('input', (e) => {
+            const val = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+            document.getElementById('slugPreview').innerText = val || '...';
+        });
+
+        document.getElementById('projectForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const createBtn = document.getElementById('createBtn');
+            const name = document.getElementById('projectName').value.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+            
+            if (projects.length >= 2) return;
+            createBtn.disabled = true;
+            createBtn.innerText = "Creating...";
+
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            const user = session?.user;
+
+            if (!user) {
+                alert("Session expired. Please log in again.");
+                window.location.href = '/';
+                return;
+            }
+
+            const { data, error } = await supabaseClient
+                .from('projects')
+                .insert([{ name, user_id: user.id }])
+                .select()
+                .single();
+
+            if (!error) {
+                await supabaseClient.from('project_files').insert([{ 
+                    project_id: data.id, 
+                    name: 'index.html', 
+                    content: '<!DOCTYPE html>\n<html>\n<body>\n<h1>Welcome to ' + name + '</h1>\n</body>\n</html>' 
+                }]);
+                
+                await fetchProjects();
+                closeModal();
+                const newIdx = projects.findIndex(p => p.id === data.id);
+                openEditor(newIdx);
+            } else {
+                alert(error.message);
+            }
+            createBtn.disabled = false;
+            createBtn.innerText = "Create & Edit";
+        };
+
+        async function deleteProject(id) {
+            if (confirm("Delete project and all its files?")) {
+                await supabaseClient.from('projects').delete().eq('id', id);
+                fetchProjects();
+            }
+        }
+
+        async function openEditor(index) {
+            currentProject = projects[index];
+            document.getElementById('editorTitle').innerText = currentProject.name;
+            document.getElementById('editorOverlay').classList.remove('hidden');
+            
+            const { data, error } = await supabaseClient
+                .from('project_files')
+                .select('*')
+                .eq('project_id', currentProject.id);
+            
+            if (!error) {
+                projectFiles = data;
+                renderFileList();
+                const idx = projectFiles.find(f => f.name === 'index.html');
+                if (idx) editFile(idx.id);
+            }
+        }
+
+        function closeEditor() {
+            document.getElementById('editorOverlay').classList.add('hidden');
+            currentEditingFile = null;
+            document.getElementById('fileEditor').classList.add('hidden');
+            document.getElementById('noFileSelected').classList.remove('hidden');
+        }
+
+        function renderFileList() {
+            const list = document.getElementById('fileList');
+            list.innerHTML = '';
+            
+            projectFiles.forEach(file => {
+                const isSpecial = SPECIAL_FILES.includes(file.name.toLowerCase());
+                const li = document.createElement('li');
+                li.className = `flex flex-col px-3 py-2 rounded-lg text-sm cursor-pointer transition ${currentEditingFile?.id === file.id ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-white hover:shadow-sm'}`;
+                
+                li.innerHTML = `
+                    <div class="flex items-center justify-between w-full">
+                        <div class="flex items-center flex-1 overflow-hidden" onclick="editFile('${file.id}')">
+                            <i class="fas ${isSpecial ? 'fa-star text-amber-400' : 'fa-file-code opacity-50'} mr-2"></i>
+                            <span class="truncate">${file.name}</span>
+                        </div>
+                        <button onclick="deleteFile('${file.id}')" class="${currentEditingFile?.id === file.id ? 'text-blue-200' : 'text-gray-300'} hover:text-red-500 transition ml-2">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    ${isSpecial ? `<span class="text-[9px] uppercase font-bold tracking-tighter mt-1 ${currentEditingFile?.id === file.id ? 'text-blue-200' : 'text-blue-500'}">Special Page</span>` : ''}
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        async function addNewFile() {
+            const filename = prompt("Enter file name (e.g. style.css):");
+            if (filename) {
+                const { data, error } = await supabaseClient
+                    .from('project_files')
+                    .insert([{ project_id: currentProject.id, name: filename, content: '' }])
+                    .select()
+                    .single();
+                
+                if (!error) {
+                    projectFiles.push(data);
+                    renderFileList();
+                    editFile(data.id);
+                }
+            }
+        }
+
+        function editFile(id) {
+            const file = projectFiles.find(f => f.id === id);
+            currentEditingFile = file;
+            const editor = document.getElementById('fileEditor');
+            const placeholder = document.getElementById('noFileSelected');
+            
+            placeholder.classList.add('hidden');
+            editor.classList.remove('hidden');
+            editor.value = file.content;
+            
+            renderFileList();
+        }
+
+        document.getElementById('fileEditor').addEventListener('input', (e) => {
+            if (currentEditingFile) {
+                currentEditingFile.content = e.target.value;
+                document.getElementById('editorStatus').innerText = "Unsaved changes...";
+                
+                clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(async () => {
+                    document.getElementById('editorStatus').innerText = "Saving...";
+                    await supabaseClient
+                        .from('project_files')
+                        .update({ content: currentEditingFile.content, updated_at: new Date() })
+                        .eq('id', currentEditingFile.id);
+                    document.getElementById('editorStatus').innerText = "All changes saved";
+                }, 1000);
+            }
+        });
+
+        async function handleFileUpload(event) {
+            const files = event.target.files;
+            for (let file of files) {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const { data, error } = await supabaseClient
+                        .from('project_files')
+                        .upsert([{ 
+                            project_id: currentProject.id, 
+                            name: file.name, 
+                            content: e.target.result 
+                        }], { onConflict: 'project_id, name' })
+                        .select()
+                        .single();
+                    
+                    if (!error) {
+                        const existingIdx = projectFiles.findIndex(f => f.name === file.name);
+                        if (existingIdx > -1) projectFiles[existingIdx] = data;
+                        else projectFiles.push(data);
+                        renderFileList();
+                        if (files.length === 1) editFile(data.id);
+                    }
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        async function deleteFile(id) {
+            if (projectFiles.length <= 1) return;
+            if (confirm(`Delete file?`)) {
+                await supabaseClient.from('project_files').delete().eq('id', id);
+                projectFiles = projectFiles.filter(f => f.id !== id);
+                if (currentEditingFile?.id === id) {
+                    currentEditingFile = null;
+                    document.getElementById('fileEditor').classList.add('hidden');
+                    document.getElementById('noFileSelected').classList.remove('hidden');
+                }
+                renderFileList();
+            }
+        }
+
+        function deploySite() {
+            const btn = event.currentTarget;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-circle-notch animate-spin mr-2"></i> Deploying...';
+            btn.disabled = true;
+            setTimeout(() => {
+                btn.innerHTML = '<i class="fas fa-check mr-2"></i> Live!';
+                btn.classList.replace('bg-blue-600', 'bg-green-600');
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.classList.replace('bg-green-600', 'bg-blue-600');
+                    btn.disabled = false;
+                }, 2000);
+            }, 1500);
+        }
+
+        async function handleLogout() {
+            await supabaseClient.auth.signOut();
+            window.location.href = '/';
+        }
+
+        window.onload = checkSession;
+    </script>
+</body>
+</html>
