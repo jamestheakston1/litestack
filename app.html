@@ -260,7 +260,7 @@
                 await supabaseClient.from('project_files').insert([{ 
                     project_id: data.id, 
                     name: 'index.html', 
-                    content: '<!DOCTYPE html>\n<html>\n<head>\n<title>' + name + '</title>\n<style>body{font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;background:#f0f4f8;}div{background:white;padding:2rem;border-radius:1rem;shadow:0 10px 15px rgba(0,0,0,0.1);}</style>\n</head>\n<body>\n<div><h1>Welcome to ' + name + '</h1><p>Successfully deployed on LiteStack.</p></div>\n</body>\n</html>' 
+                    content: '<!DOCTYPE html>\n<html>\n<head>\n<title>' + name + '</title>\n<style>body{font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;background:#f0f4f8;}div{background:white;padding:2rem;border-radius:1rem;shadow:0 10px 15px rgba(0,0,0,0.1);}</style>\n</head>\n<body>\n<div><h1>Welcome to ' + name + '</h1><p>Successfully deployed on LiteStack. Begin adding files in your LiteStack dashboard to make this website your own.</p></div>\n</body>\n</html>' 
                 }]);
                 
                 await fetchProjects();
