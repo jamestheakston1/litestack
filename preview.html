@@ -3,113 +3,134 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LiteStack | Preview</title>
+    <title>Preview | LiteStack</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; overflow: hidden; background: #f9fafb; }
+        #preview-frame { width: 100%; height: 100vh; border: none; background: white; }
+        .loading-screen { position: fixed; inset: 0; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
+    </style>
 </head>
-<body class="bg-white overflow-hidden h-screen flex flex-col">
+<body>
 
-    <div class="flex-1 relative bg-white">
-        <iframe id="previewFrame" class="w-full h-full border-none" src="about:blank"></iframe>
-        <div id="loading" class="absolute inset-0 bg-white flex flex-col items-center justify-center z-20 transition-opacity duration-300">
-            <i class="fas fa-circle-notch fa-spin text-blue-600 text-3xl mb-4"></i>
-            <p class="text-sm font-medium text-gray-500">Please wait...</p>
-        </div>
+    <div id="loader" class="loading-screen">
+        <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p class="text-gray-500 font-medium animate-pulse">Loading project...</p>
     </div>
+
+    <iframe id="preview-frame" sandbox="allow-scripts allow-forms allow-popups allow-modals allow-same-origin" title="Preview"></iframe>
 
     <script>
         const supabaseClient = supabase.createClient('https://sykhfbuvevixbxfrbysa.supabase.co', 'sb_publishable_mocH3Iz2GQ_FQaB0d8LbEQ_szHXLp93');
-        const urlParams = new URLSearchParams(window.location.search);
-        const siteName = urlParams.get('site');
-        const pageName = urlParams.get('page') || 'index.html';
-        const iframe = document.getElementById('previewFrame');
-        const loading = document.getElementById('loading');
 
-        async function loadContent() {
+        async function loadPreview() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const siteName = urlParams.get('site');
+            const pageName = urlParams.get('page') || 'index.html';
+
             if (!siteName) {
-                window.location.href = '/errors/nosite.html';
+                window.location.href = 'errors/nosite.html';
                 return;
             }
 
-            try {
-                const { data: project, error: pError } = await supabaseClient
-                    .from('projects')
-                    .select('id')
-                    .eq('name', siteName)
-                    .single();
+            const { data: project, error: pError } = await supabaseClient
+                .from('projects')
+                .select('id')
+                .eq('name', siteName)
+                .single();
 
-                if (pError || !project) {
-                    window.location.href = '/errors/nosite.html';
-                    return;
-                }
-
-                const { data: files, error: fError } = await supabaseClient
-                    .from('project_files')
-                    .select('name, content')
-                    .eq('project_id', project.id);
-
-                if (fError || !files || files.length === 0) {
-                    window.location.href = '/errors/default404.html?site=' + siteName;
-                    return;
-                }
-
-                const requestedFile = files.find(f => f.name.toLowerCase() === pageName.toLowerCase());
-
-                if (requestedFile) {
-                    renderToIframe(requestedFile.content);
-                } else {
-                    const custom404 = files.find(f => f.name.toLowerCase() === '404.html');
-                    if (custom404) {
-                        renderToIframe(custom404.content);
-                    } else {
-                        window.location.href = `/errors/default404.html?site=${siteName}`;
-                    }
-                }
-            } catch (err) {
-                console.error(err);
-                window.location.href = '/errors/default404.html';
+            if (pError || !project) {
+                window.location.href = 'errors/nosite.html';
+                return;
             }
-        }
 
-        function renderToIframe(content) {
-            const doc = iframe.contentDocument || iframe.contentWindow.document;
+            const { data: files, error: fError } = await supabaseClient
+                .from('project_files')
+                .select('name, content')
+                .eq('project_id', project.id);
+
+            if (fError || !files || files.length === 0) {
+                window.location.href = '404.html';
+                return;
+            }
+
+            const requestedFile = files.find(f => f.name === pageName);
+            if (!requestedFile) {
+                window.location.href = '404.html';
+                return;
+            }
+
+            const frame = document.getElementById('preview-frame');
+            const doc = frame.contentWindow.document;
+
+            let htmlContent = requestedFile.content;
+
+            const blobMap = {};
+            files.forEach(file => {
+                if (file.name !== pageName) {
+                    const type = getMimeType(file.name);
+                    const blob = new Blob([file.content], { type });
+                    blobMap[file.name] = URL.createObjectURL(blob);
+                }
+            });
+
+            Object.keys(blobMap).forEach(fileName => {
+                const escapedName = fileName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const regex = new RegExp(`(src|href)=["']\\.?\\/?${escapedName}["']`, 'g');
+                htmlContent = htmlContent.replace(regex, `$1="${blobMap[fileName]}"`);
+            });
+
             doc.open();
-            doc.write(content);
+            doc.write(htmlContent);
             doc.close();
 
-            const userTitle = doc.querySelector('title');
-            if (userTitle && userTitle.innerText) {
-                document.title = userTitle.innerText;
-            } else {
-                document.title = `${siteName} | LiteStack`;
-            }
+            const linkScript = doc.createElement('script');
+            linkScript.textContent = `
+                document.addEventListener('click', function(e) {
+                    const target = e.target.closest('a');
+                    if (!target) return;
+                    
+                    const href = target.getAttribute('href');
+                    if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
 
-            loading.style.opacity = '0';
-            setTimeout(() => {
-                loading.style.display = 'none';
-            }, 300);
-
-            doc.addEventListener('click', (e) => {
-                const link = e.target.closest('a');
-                if (link) {
-                    const href = link.getAttribute('href');
-                    if (href && !href.startsWith('http') && !href.startsWith('//') && !href.startsWith('mailto:') && !href.startsWith('#')) {
+                    const isExternal = href.startsWith('http') || href.startsWith('//');
+                    
+                    if (isExternal || target.getAttribute('target') === '_blank') {
                         e.preventDefault();
-                        
-                        loading.style.display = 'flex';
-                        loading.style.opacity = '1';
-
-                        const cleanPage = href.split('?')[0].split('#')[0];
-                        const currentParams = new URLSearchParams(window.location.search);
-                        currentParams.set('page', cleanPage);
-                        window.location.href = window.location.pathname + '?' + currentParams.toString();
+                        window.open(href, '_blank');
+                    } else {
+                        const isInternalFile = ${JSON.stringify(files.map(f => f.name))}.includes(href);
+                        if (isInternalFile) {
+                            e.preventDefault();
+                            const url = new URL(window.parent.location.href);
+                            url.searchParams.set('page', href);
+                            window.parent.location.href = url.toString();
+                        }
                     }
-                }
-            }, true);
+                }, true);
+            `;
+            doc.body.appendChild(linkScript);
+
+            document.getElementById('loader').classList.add('hidden');
         }
 
-        loadContent();
+        function getMimeType(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            const types = {
+                'html': 'text/html',
+                'css': 'text/css',
+                'js': 'text/javascript',
+                'svg': 'image/svg+xml',
+                'json': 'application/json',
+                'txt': 'text/plain'
+            };
+            return types[ext] || 'text/plain';
+        }
+
+        window.onload = loadPreview;
     </script>
 </body>
 </html>
