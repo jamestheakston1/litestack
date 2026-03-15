@@ -6,6 +6,7 @@
     <title>LiteStack | Preview</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="bg-white overflow-hidden h-screen flex flex-col">
 
@@ -18,64 +19,84 @@
     </div>
 
     <script>
+        const supabaseClient = supabase.createClient('https://sykhfbuvevixbxfrbysa.supabase.co', 'sb_publishable_mocH3Iz2GQ_FQaB0d8LbEQ_szHXLp93');
         const urlParams = new URLSearchParams(window.location.search);
-        const site = urlParams.get('site');
-        const page = urlParams.get('page') || 'index.html';
+        const siteName = urlParams.get('site');
+        const pageName = urlParams.get('page') || 'index.html';
         const iframe = document.getElementById('previewFrame');
         const loading = document.getElementById('loading');
 
-        if (!site) {
-            window.location.href = '/errors/default404.html';
+        async function loadContent() {
+            if (!siteName) {
+                window.location.href = '/errors/nosite.html';
+                return;
+            }
+
+            try {
+                const { data: project, error: pError } = await supabaseClient
+                    .from('projects')
+                    .select('id')
+                    .eq('name', siteName)
+                    .single();
+
+                if (pError || !project) {
+                    window.location.href = '/errors/nosite.html';
+                    return;
+                }
+
+                const { data: files, error: fError } = await supabaseClient
+                    .from('project_files')
+                    .select('name, content')
+                    .eq('project_id', project.id);
+
+                if (fError || !files || files.length === 0) {
+                    window.location.href = '/errors/default404.html?site=' + siteName;
+                    return;
+                }
+
+                const requestedFile = files.find(f => f.name.toLowerCase() === pageName.toLowerCase());
+
+                if (requestedFile) {
+                    renderToIframe(requestedFile.content);
+                } else {
+                    const custom404 = files.find(f => f.name.toLowerCase() === '404.html');
+                    if (custom404) {
+                        renderToIframe(custom404.content);
+                    } else {
+                        window.location.href = `/errors/default404.html?site=${siteName}`;
+                    }
+                }
+            } catch (err) {
+                console.error(err);
+                window.location.href = '/errors/default404.html';
+            }
         }
 
-        const projectUrl = `https://${site}.litestack.site/${page}`;
+        function renderToIframe(content) {
+            const doc = iframe.contentDocument || iframe.contentWindow.document;
+            doc.open();
+            doc.write(content);
+            doc.close();
 
-        iframe.src = projectUrl;
-
-        iframe.onload = () => {
             loading.style.opacity = '0';
             setTimeout(() => loading.style.display = 'none', 300);
 
-            try {
-                const doc = iframe.contentDocument || iframe.contentWindow.document;
-
-                doc.addEventListener('click', (e) => {
-                    const link = e.target.closest('a');
-                    if (link && link.href) {
-                        const href = link.getAttribute('href');
-                        
-                        if (!href.startsWith('http') && !href.startsWith('//') && !href.startsWith('mailto:') && !href.startsWith('#')) {
-                            e.preventDefault();
-                            
-                            const cleanPage = href.split('?')[0].split('#')[0];
-                            const currentParams = new URLSearchParams(window.location.search);
-                            currentParams.set('page', cleanPage);
-                            
-                            window.location.href = window.location.pathname + '?' + currentParams.toString();
-                        }
-                    }
-                }, true);
-
-                doc.addEventListener('submit', (e) => {
-                    const action = e.target.getAttribute('action');
-                    if (action && !action.startsWith('http') && !action.startsWith('//')) {
+            doc.addEventListener('click', (e) => {
+                const link = e.target.closest('a');
+                if (link) {
+                    const href = link.getAttribute('href');
+                    if (href && !href.startsWith('http') && !href.startsWith('//') && !href.startsWith('mailto:') && !href.startsWith('#')) {
                         e.preventDefault();
+                        const cleanPage = href.split('?')[0].split('#')[0];
                         const currentParams = new URLSearchParams(window.location.search);
-                        currentParams.set('page', action);
+                        currentParams.set('page', cleanPage);
                         window.location.href = window.location.pathname + '?' + currentParams.toString();
                     }
-                }, true);
-
-            } catch (err) {
-                console.warn('Cross-origin restriction or content error', err);
-            }
-        };
-
-        function refreshPreview() {
-            loading.style.display = 'flex';
-            loading.style.opacity = '1';
-            iframe.src = iframe.src;
+                }
+            }, true);
         }
+
+        loadContent();
     </script>
 </body>
 </html>
