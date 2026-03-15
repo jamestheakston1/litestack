@@ -1,0 +1,87 @@
+ <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - Not Found</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            text-align: center;
+        }
+        .content-box {
+            border: 1px solid #000;
+            padding: 40px;
+            max-width: 400px;
+        }
+        h1 {
+            margin-top: 0;
+        }
+        .admin-note {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ccc;
+            font-size: 0.8em;
+        }
+        .logo {
+            margin-top: 20px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-size: 0.7em;
+            opacity: 0.5;
+        }
+        .links {
+            margin: 20px 0;
+        }
+        a, button {
+            background: none;
+            border: none;
+            color: blue;
+            text-decoration: underline;
+            cursor: pointer;
+            font-size: 1em;
+            padding: 0 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="content-box">
+        <h1>404 - Page Not Found</h1>
+        <p>The requested page does not exist in this project.</p>
+
+        <div class="links">
+            <button onclick="goToProjectIndex()">Back to Home</button>
+            <a href="/app.html">LiteStack Dashboard</a>
+        </div>
+
+        <div class="admin-note">
+            Are you the site owner? You can personalize this experience by adding a 404.html file to your project's root directory.
+        </div>
+    </div>
+
+    <div class="logo">
+        LiteStack
+    </div>
+
+    <script>
+        function goToProjectIndex() {
+            const params = new URLSearchParams(window.location.search);
+            const site = params.get('site');
+            if (site) {
+                window.location.href = `/preview?site=${site}&page=index.html`;
+            } else {
+                window.location.href = '/app.html';
+            }
+        }
+    </script>
+
+</body>
+</html>
