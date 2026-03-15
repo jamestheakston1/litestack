@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LiteStack | High-Performance Cloud Infrastructure</title>
+    <script>
+        (function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('site') || urlParams.has('page')) {
+                window.location.href = '/preview' + window.location.search;
+            }
+        })();
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -153,8 +161,8 @@
                     <div class="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition duration-300">
                         <i class="fas fa-search text-2xl"></i>
                     </div>
-                    <h3 class="text-xl font-bold mb-4">Query-Based Routing</h3>
-                    <p class="text-gray-500 leading-relaxed font-medium">Instant site isolation using simple query parameters. Access your projects with litestack.pages.dev/?site=[name].</p>
+                    <h3 class="text-xl font-bold mb-4">Universal Previews</h3>
+                    <p class="text-gray-500 leading-relaxed font-medium">Instant site isolation using path-based routing. Access your projects with litestack.pages.dev/preview?site=[name].</p>
                 </div>
                 <div class="group">
                     <div class="w-14 h-14 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition duration-300">
@@ -187,7 +195,7 @@
                             <div class="w-10 h-10 bg-white/5 rounded-lg flex items-center justify-center">
                                 <i class="fas fa-link text-blue-400"></i>
                             </div>
-                            <span class="font-bold text-gray-200">litestack.pages.dev/?site=[name]</span>
+                            <span class="font-bold text-gray-200">litestack.pages.dev/preview?site=[name]</span>
                         </div>
                     </div>
                 </div>
@@ -226,7 +234,7 @@
 <span class="text-gray-500">Targeting Region: Stockholm (ARN-1)</span>
 <span class="text-gray-500">Syncing to Cloudflare Pages... </span><span class="text-green-400">Done</span>
 <span class="text-green-400">Success!</span> <span class="text-gray-200">Site live at:</span>
-<span class="text-blue-400 underline cursor-pointer">https://litestack.pages.dev/?site=my-site</span></pre>
+<span class="text-blue-400 underline cursor-pointer">https://litestack.pages.dev/preview?site=my-site</span></pre>
                     </div>
                 </div>
                 <div class="order-1 md:order-2">
@@ -339,10 +347,10 @@
             if (session) {
                 const dashboardText = 'Go to Dashboard';
                 navBtn.innerText = dashboardText;
-                navBtn.onclick = () => window.location.href = '/app';
+                navBtn.onclick = () => window.location.href = '/app.html';
                 navLogout.classList.remove('hidden');
                 heroBtn.innerText = dashboardText;
-                heroBtn.onclick = () => window.location.href = '/app';
+                heroBtn.onclick = () => window.location.href = '/app.html';
             } else {
                 const getStartedText = 'Get Started';
                 navBtn.innerText = getStartedText;
@@ -361,7 +369,7 @@
             const { error } = await supabaseClient.auth.signInWithOAuth({
                 provider: 'github',
                 options: {
-                    redirectTo: window.location.origin + '/app'
+                    redirectTo: window.location.origin + '/app.html'
                 }
             });
             if (error) {
@@ -387,7 +395,7 @@
                     authMessage.innerText = signInError.message;
                     authMessage.classList.remove('hidden');
                 } else {
-                    window.location.href = '/app';
+                    window.location.href = '/app.html';
                 }
             } else {
                 authMessage.innerText = 'Success! Check your email to verify.';
