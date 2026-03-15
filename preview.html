@@ -12,9 +12,9 @@
 
     <div class="flex-1 relative bg-white">
         <iframe id="previewFrame" class="w-full h-full border-none" src="about:blank"></iframe>
-        <div id="loading" class="absolute inset-0 bg-white flex flex-col items-center justify-center z-20">
+        <div id="loading" class="absolute inset-0 bg-white flex flex-col items-center justify-center z-20 transition-opacity duration-300">
             <i class="fas fa-circle-notch fa-spin text-blue-600 text-3xl mb-4"></i>
-            <p class="text-sm font-medium text-gray-500">Loading Instance...</p>
+            <p class="text-sm font-medium text-gray-500">Please wait...</p>
         </div>
     </div>
 
@@ -78,8 +78,17 @@
             doc.write(content);
             doc.close();
 
+            const userTitle = doc.querySelector('title');
+            if (userTitle && userTitle.innerText) {
+                document.title = userTitle.innerText;
+            } else {
+                document.title = `${siteName} | LiteStack`;
+            }
+
             loading.style.opacity = '0';
-            setTimeout(() => loading.style.display = 'none', 300);
+            setTimeout(() => {
+                loading.style.display = 'none';
+            }, 300);
 
             doc.addEventListener('click', (e) => {
                 const link = e.target.closest('a');
@@ -87,6 +96,10 @@
                     const href = link.getAttribute('href');
                     if (href && !href.startsWith('http') && !href.startsWith('//') && !href.startsWith('mailto:') && !href.startsWith('#')) {
                         e.preventDefault();
+                        
+                        loading.style.display = 'flex';
+                        loading.style.opacity = '1';
+
                         const cleanPage = href.split('?')[0].split('#')[0];
                         const currentParams = new URLSearchParams(window.location.search);
                         currentParams.set('page', cleanPage);
