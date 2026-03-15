@@ -3,76 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Loading Site...</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: sans-serif; }
-        .error-container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; text-align: center; background: #f9fafb; }
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #2563eb; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    </style>
+    <title>LiteStack | Preview</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
-    <div id="status" class="error-container">
-        <div class="loader"></div>
-        <p>Loading your LiteStack site...</p>
+<body class="bg-white overflow-hidden h-screen flex flex-col">
+
+    <div class="flex-1 relative bg-white">
+        <iframe id="previewFrame" class="w-full h-full border-none" src="about:blank"></iframe>
+        <div id="loading" class="absolute inset-0 bg-white flex flex-col items-center justify-center z-20">
+            <i class="fas fa-circle-notch fa-spin text-blue-600 text-3xl mb-4"></i>
+            <p class="text-sm font-medium text-gray-500">Loading Instance...</p>
+        </div>
     </div>
 
     <script>
-        const supabaseClient = supabase.createClient('https://sykhfbuvevixbxfrbysa.supabase.co', 'sb_publishable_mocH3Iz2GQ_FQaB0d8LbEQ_szHXLp93');
+        const urlParams = new URLSearchParams(window.location.search);
+        const site = urlParams.get('site');
+        const page = urlParams.get('page') || 'index.html';
+        const iframe = document.getElementById('previewFrame');
+        const loading = document.getElementById('loading');
 
-        async function loadSite() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const siteName = urlParams.get('site');
-            const pageName = urlParams.get('page') || 'index.html';
-
-            if (!siteName) {
-                window.location.href = 'errors/nosite.html';
-                return;
-            }
-
-            const { data: project, error: pError } = await supabaseClient
-                .from('projects')
-                .select('id')
-                .eq('name', siteName)
-                .single();
-
-            if (pError || !project) {
-                window.location.href = 'errors/nosite.html';
-                return;
-            }
-
-            const { data: files, error: fError } = await supabaseClient
-                .from('project_files')
-                .select('name, content')
-                .eq('project_id', project.id);
-
-            if (fError || !files || files.length === 0) {
-                window.location.href = 'errors/default404.html';
-                return;
-            }
-
-            const requestedFile = files.find(f => f.name.toLowerCase() === pageName.toLowerCase());
-
-            if (requestedFile) {
-                renderContent(requestedFile.content);
-            } else {
-                const custom404 = files.find(f => f.name.toLowerCase() === '404.html');
-                if (custom404) {
-                    renderContent(custom404.content);
-                } else {
-                    window.location.href = 'errors/default404.html';
-                }
-            }
+        if (!site) {
+            window.location.href = '/errors/default404.html';
         }
 
-        function renderContent(content) {
-            document.open();
-            document.write(content);
-            document.close();
-        }
+        const projectUrl = `https://${site}.litestack.site/${page}`;
 
-        loadSite();
+        iframe.src = projectUrl;
+
+        iframe.onload = () => {
+            loading.style.opacity = '0';
+            setTimeout(() => loading.style.display = 'none', 300);
+
+            try {
+                const doc = iframe.contentDocument || iframe.contentWindow.document;
+
+                doc.addEventListener('click', (e) => {
+                    const link = e.target.closest('a');
+                    if (link && link.href) {
+                        const href = link.getAttribute('href');
+                        
+                        if (!href.startsWith('http') && !href.startsWith('//') && !href.startsWith('mailto:') && !href.startsWith('#')) {
+                            e.preventDefault();
+                            
+                            const cleanPage = href.split('?')[0].split('#')[0];
+                            const currentParams = new URLSearchParams(window.location.search);
+                            currentParams.set('page', cleanPage);
+                            
+                            window.location.href = window.location.pathname + '?' + currentParams.toString();
+                        }
+                    }
+                }, true);
+
+                doc.addEventListener('submit', (e) => {
+                    const action = e.target.getAttribute('action');
+                    if (action && !action.startsWith('http') && !action.startsWith('//')) {
+                        e.preventDefault();
+                        const currentParams = new URLSearchParams(window.location.search);
+                        currentParams.set('page', action);
+                        window.location.href = window.location.pathname + '?' + currentParams.toString();
+                    }
+                }, true);
+
+            } catch (err) {
+                console.warn('Cross-origin restriction or content error', err);
+            }
+        };
+
+        function refreshPreview() {
+            loading.style.display = 'flex';
+            loading.style.opacity = '1';
+            iframe.src = iframe.src;
+        }
     </script>
 </body>
 </html>
