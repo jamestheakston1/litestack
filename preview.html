@@ -7,10 +7,11 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style id="liteStackGlobalCSS"></style>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #ffffff; margin: 0; padding: 0; height: 100vh; overflow: hidden; }
-        #passwordOverlay, #restrictionOverlay { z-index: 1000; backdrop-filter: blur(8px); }
+        #passwordOverlay, #restrictionOverlay, #maintenanceOverlay { z-index: 1000; backdrop-filter: blur(8px); }
         .loading-spin { animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     </style>
@@ -24,8 +25,8 @@
         </div>
     </div>
 
-    <div id="passwordOverlay" class="hidden fixed inset-0 bg-white/90 flex items-center justify-center p-6">
-        <div class="max-w-md w-full text-center">
+    <div id="passwordOverlay" class="hidden fixed inset-0 bg-white/90 flex items-center justify-center p-6 text-center">
+        <div class="max-w-md w-full">
             <div class="w-20 h-20 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center text-3xl mx-auto mb-6">
                 <i class="fas fa-lock"></i>
             </div>
@@ -48,6 +49,16 @@
         </div>
     </div>
 
+    <div id="maintenanceOverlay" class="hidden fixed inset-0 bg-white flex items-center justify-center p-6 text-center">
+        <div class="max-w-md">
+            <div class="w-20 h-20 bg-amber-50 text-amber-500 rounded-3xl flex items-center justify-center text-3xl mx-auto mb-6">
+                <i class="fas fa-tools"></i>
+            </div>
+            <h2 class="text-3xl font-black text-gray-900 mb-2">Under Maintenance</h2>
+            <p class="text-gray-500">We're making some improvements. Please check back later.</p>
+        </div>
+    </div>
+
     <iframe id="previewFrame" class="w-full h-full border-none hidden"></iframe>
 
     <script>
@@ -58,9 +69,13 @@
 
         let siteConfig = {
             password: "",
+            maintenance: false,
             devices: { mobile: true, tablet: true, desktop: true },
             loadingText: "Please wait...",
-            showLoader: true
+            showLoader: true,
+            titleSuffix: "",
+            description: "",
+            globalCSS: ""
         };
 
         async function initPreview() {
@@ -90,9 +105,18 @@
                 try {
                     const parsed = JSON.parse(configFile.content);
                     siteConfig = { ...siteConfig, ...parsed };
+                    if (siteConfig.globalCSS) {
+                        document.getElementById('liteStackGlobalCSS').innerHTML = siteConfig.globalCSS;
+                    }
                 } catch (e) {
                     console.error("Config error", e);
                 }
+            }
+
+            if (siteConfig.maintenance) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('maintenanceOverlay').classList.remove('hidden');
+                return;
             }
 
             if (!isDeviceAllowed()) {
@@ -115,7 +139,6 @@
             let currentDevice = 'desktop';
             if (width < 768) currentDevice = 'mobile';
             else if (width < 1024) currentDevice = 'tablet';
-            
             return siteConfig.devices[currentDevice] !== false;
         }
 
@@ -168,6 +191,10 @@
             doc.open();
             doc.write(content);
             doc.close();
+
+            if (siteConfig.titleSuffix) {
+                doc.title = doc.title + siteConfig.titleSuffix;
+            }
 
             doc.addEventListener('click', (e) => {
                 const a = e.target.closest('a');
