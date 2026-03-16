@@ -12,7 +12,9 @@
         body { font-family: 'Inter', sans-serif; background-color: #f9fafb; color: #111111; }
         .glass { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); }
         .modal-overlay { background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(4px); transition: all 0.3s ease; }
+        #monacoEditor { width: 100%; height: 100%; }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.0/min/vs/loader.min.js"></script>
 </head>
 <body class="antialiased">
 
@@ -76,33 +78,8 @@
         </div>
     </div>
 
-    <div id="fileCreationModal" class="fixed inset-0 modal-overlay z-[400] hidden flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-8 relative">
-            <h3 class="text-xl font-bold mb-4">Create New File</h3>
-            <input type="text" id="newFileNameInput" class="w-full px-4 py-3 rounded-xl border border-gray-200 mb-4 outline-none focus:border-blue-500" placeholder="e.g. style.css">
-            <div class="flex space-x-3">
-                <button onclick="closeFileCreationModal()" class="flex-1 py-3 text-gray-500 font-bold">Cancel</button>
-                <button onclick="confirmFileCreation()" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold">Create</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="deleteConfirmModal" class="fixed inset-0 modal-overlay z-[500] hidden flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-8 text-center">
-            <div class="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i class="fas fa-trash-alt text-2xl"></i>
-            </div>
-            <h3 class="text-xl font-bold mb-2">Are you sure?</h3>
-            <p id="deleteConfirmMsg" class="text-gray-500 text-sm mb-6">This action cannot be undone.</p>
-            <div class="flex space-x-3">
-                <button onclick="closeDeleteModal()" class="flex-1 py-3 text-gray-500 font-bold">Cancel</button>
-                <button id="finalDeleteBtn" class="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold">Delete</button>
-            </div>
-        </div>
-    </div>
-
     <div id="configHelpModal" class="fixed inset-0 modal-overlay z-[400] hidden flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl p-8 relative max-h-[90vh] overflow-y-auto">
+        <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl p-8 relative">
             <button onclick="closeConfigHelp()" class="absolute top-6 right-6 text-gray-400 hover:text-black transition">
                 <i class="fas fa-times"></i>
             </button>
@@ -112,38 +89,24 @@
                 </div>
                 <div>
                     <h3 class="text-2xl font-bold text-gray-900">Advanced Settings</h3>
-                    <p class="text-gray-500 text-sm">JSON configuration options</p>
+                    <p class="text-gray-500 text-sm">Use <code>config.json</code> to unlock these features.</p>
                 </div>
             </div>
             <div class="space-y-4 mb-8">
                 <div class="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                    <p class="text-sm font-bold text-gray-900 flex items-center"><i class="fas fa-lock mr-2 text-blue-600"></i> Access & Security</p>
-                    <p class="text-xs text-gray-500 mt-1"><code>"password": "secret"</code> or <code>"maintenance": true</code></p>
+                    <p class="text-sm font-bold text-gray-900 flex items-center"><i class="fas fa-lock mr-2 text-blue-600"></i> Password Protection</p>
+                    <p class="text-xs text-gray-500 mt-1 leading-relaxed">Add <code>"password": "your-secret"</code> to the JSON object. Default is <code>""</code>.</p>
                 </div>
                 <div class="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                    <p class="text-sm font-bold text-gray-900 flex items-center"><i class="fas fa-search mr-2 text-blue-600"></i> SEO & Meta</p>
-                    <p class="text-xs text-gray-500 mt-1"><code>"titleSuffix": " | My Brand"</code>, <code>"description": "..."</code></p>
+                    <p class="text-sm font-bold text-gray-900 flex items-center"><i class="fas fa-mobile-alt mr-2 text-blue-600"></i> Device Restrictions</p>
+                    <p class="text-xs text-gray-500 mt-1 leading-relaxed">Add <code>"devices": {"mobile": true, "tablet": true, "desktop": true}</code>. Change any to <code>false</code> to block access.</p>
                 </div>
                 <div class="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                    <p class="text-sm font-bold text-gray-900 flex items-center"><i class="fas fa-palette mr-2 text-blue-600"></i> Global Injection</p>
-                    <p class="text-xs text-gray-500 mt-1"><code>"globalCSS": "body { filter: grayscale(1); }"</code></p>
+                    <p class="text-sm font-bold text-gray-900 flex items-center"><i class="fas fa-spinner mr-2 text-blue-600"></i> Loading Experience</p>
+                    <p class="text-xs text-gray-500 mt-1 leading-relaxed">Change <code>"loadingText"</code> or set <code>"showLoader": false</code> to remove the wait screen.</p>
                 </div>
             </div>
             <button onclick="closeConfigHelp()" class="w-full bg-gray-900 text-white py-4 rounded-2xl font-bold hover:bg-black transition">I understand</button>
-        </div>
-    </div>
-
-    <div id="custom404HelpModal" class="fixed inset-0 modal-overlay z-[400] hidden flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl p-8 text-center relative">
-            <button onclick="close404Help()" class="absolute top-6 right-6 text-gray-400 hover:text-black transition">
-                <i class="fas fa-times"></i>
-            </button>
-            <div class="w-20 h-20 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl">
-                <i class="fas fa-ghost"></i>
-            </div>
-            <h3 class="text-2xl font-bold text-gray-900 mb-2">Custom Error Page</h3>
-            <p class="text-gray-500 mb-6">By creating a <code>404.html</code>, users will see your branded error page instead of the default one when a link is broken.</p>
-            <button onclick="close404Help()" class="w-full bg-orange-600 text-white py-4 rounded-2xl font-bold hover:bg-orange-700 transition">Got it</button>
         </div>
     </div>
 
@@ -191,6 +154,9 @@
                     <i class="fas fa-upload mr-2"></i> Upload
                 </button>
                 <input type="file" id="fileInput" class="hidden" multiple onchange="handleFileUpload(event)">
+                <button onclick="toggleProjectSettings()" class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-bold hover:bg-gray-50 transition">
+                    <i class="fas fa-sliders-h mr-2"></i> Settings
+                </button>
                 <button onclick="deploySiteAction()" class="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-100">Deploy</button>
             </div>
         </div>
@@ -198,7 +164,16 @@
             <div class="w-72 border-r border-gray-100 bg-gray-50 flex flex-col overflow-hidden">
                 <div class="p-4 flex-1 overflow-y-auto">
                     <h3 class="text-xs font-bold uppercase text-gray-400 mb-4 tracking-widest">Recommended</h3>
-                    <div id="recommendedFiles" class="mb-8 space-y-2"></div>
+                    <div id="recommendedFiles" class="mb-8 space-y-2">
+                        <div onclick="handleConfigRecommended()" class="p-3 bg-white border border-blue-100 rounded-xl cursor-pointer hover:shadow-md transition group">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-blue-50 text-blue-600 rounded flex items-center justify-center text-xs group-hover:bg-blue-600 group-hover:text-white transition">
+                                    <i class="fas fa-cog"></i>
+                                </div>
+                                <span class="text-sm font-bold text-gray-900">config.json</span>
+                            </div>
+                        </div>
+                    </div>
                     
                     <h3 class="text-xs font-bold uppercase text-gray-400 mb-4 tracking-widest">Site Files</h3>
                     <ul id="fileList" class="space-y-1"></ul>
@@ -209,9 +184,53 @@
                     <i class="fas fa-file-code text-4xl mb-4 opacity-20"></i>
                     <p>Select a file to edit or create a new one.</p>
                 </div>
+                <div id="monacoEditor" class="hidden absolute inset-0"></div>
                 <textarea id="fileEditor" class="hidden w-full h-full p-8 font-mono text-sm outline-none resize-none bg-gray-50" spellcheck="false"></textarea>
             </div>
         </div>
+    </div>
+
+    <div id="projectSettingsPanel" class="fixed right-4 top-24 w-80 bg-white border border-gray-200 rounded-2xl shadow-xl p-5 z-[250] hidden">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h3 class="text-sm font-bold text-gray-900">Project Settings</h3>
+                <p class="text-xs text-gray-400">Customize editor for this project</p>
+            </div>
+            <button onclick="toggleProjectSettings()" class="text-gray-400 hover:text-black transition">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="space-y-4 text-sm">
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 mb-1">Theme</label>
+                <select id="settingTheme" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+                    <option value="vs-light">Light</option>
+                    <option value="vs-dark">Dark</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 mb-1">Font Size</label>
+                <input id="settingFontSize" type="number" min="10" max="24" step="1" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value="13">
+            </div>
+            <div class="flex items-center justify-between">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 mb-1">Word Wrap</label>
+                    <p class="text-[11px] text-gray-400">Wrap long lines in the editor</p>
+                </div>
+                <label class="flex items-center space-x-2">
+                    <input id="settingWordWrap" type="checkbox" class="rounded border-gray-300" checked>
+                    <span class="text-xs text-gray-600">Enabled</span>
+                </label>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 mb-1">Auto-save Delay (ms)</label>
+                <input id="settingAutoSaveDelay" type="number" min="300" max="5000" step="100" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value="1000">
+                <p class="text-[11px] text-gray-400 mt-1">Time after typing before drafts are saved.</p>
+            </div>
+        </div>
+        <button onclick="saveProjectSettings()" class="mt-5 w-full bg-blue-600 text-white py-2.5 rounded-lg text-sm font-bold hover:bg-blue-700 transition">
+            Save Settings
+        </button>
     </div>
 
     <script>
@@ -223,7 +242,169 @@
         let currentEditingFile = null;
         let saveTimeout = null;
 
+        let monacoEditor = null;
+        let monacoDisposer = null;
+        let editorSettings = {
+            theme: 'vs-light',
+            fontSize: 13,
+            wordWrap: 'on',
+            autoSaveDelay: 1000
+        };
+
         const SPECIAL_FILES = ['index.html', '404.html', 'config.json', 'robots.txt', '_worker.js'];
+
+        function getProjectSettingsKey(projectId) {
+            return `litestack_project_settings_${projectId}`;
+        }
+
+        function loadProjectSettings(projectId) {
+            try {
+                const raw = localStorage.getItem(getProjectSettingsKey(projectId));
+                if (!raw) return;
+                const parsed = JSON.parse(raw);
+                editorSettings = { ...editorSettings, ...parsed };
+            } catch (e) {
+                console.error('Failed to load project settings', e);
+            }
+        }
+
+        function persistProjectSettings() {
+            if (!currentProject) return;
+            try {
+                localStorage.setItem(getProjectSettingsKey(currentProject.id), JSON.stringify(editorSettings));
+            } catch (e) {
+                console.error('Failed to save project settings', e);
+            }
+        }
+
+        function applyEditorSettingsToUI() {
+            const themeSelect = document.getElementById('settingTheme');
+            const fontSizeInput = document.getElementById('settingFontSize');
+            const wordWrapCheckbox = document.getElementById('settingWordWrap');
+            const autoSaveInput = document.getElementById('settingAutoSaveDelay');
+            if (!themeSelect) return;
+
+            themeSelect.value = editorSettings.theme || 'vs-light';
+            fontSizeInput.value = editorSettings.fontSize ?? 13;
+            wordWrapCheckbox.checked = (editorSettings.wordWrap || 'on') === 'on';
+            autoSaveInput.value = editorSettings.autoSaveDelay ?? 1000;
+        }
+
+        function applyEditorSettingsToMonaco() {
+            if (!window.monaco || !monacoEditor) return;
+            window.monaco.editor.setTheme(editorSettings.theme || 'vs-light');
+            monacoEditor.updateOptions({
+                fontSize: editorSettings.fontSize ?? 13,
+                wordWrap: editorSettings.wordWrap || 'on'
+            });
+        }
+
+        function toggleProjectSettings() {
+            const panel = document.getElementById('projectSettingsPanel');
+            if (!panel) return;
+            const isHidden = panel.classList.contains('hidden');
+            panel.classList.toggle('hidden', !isHidden);
+            if (isHidden) applyEditorSettingsToUI();
+        }
+
+        function saveProjectSettings() {
+            const themeSelect = document.getElementById('settingTheme');
+            const fontSizeInput = document.getElementById('settingFontSize');
+            const wordWrapCheckbox = document.getElementById('settingWordWrap');
+            const autoSaveInput = document.getElementById('settingAutoSaveDelay');
+
+            editorSettings = {
+                theme: themeSelect.value,
+                fontSize: parseInt(fontSizeInput.value, 10) || 13,
+                wordWrap: wordWrapCheckbox.checked ? 'on' : 'off',
+                autoSaveDelay: parseInt(autoSaveInput.value, 10) || 1000
+            };
+
+            persistProjectSettings();
+            applyEditorSettingsToMonaco();
+            toggleProjectSettings();
+        }
+
+        function getLanguageFromFilename(filename) {
+            const lower = (filename || '').toLowerCase();
+            if (lower.endsWith('.html') || lower.endsWith('.htm')) return 'html';
+            if (lower.endsWith('.css')) return 'css';
+            if (lower.endsWith('.js') || lower.endsWith('.mjs') || lower.endsWith('.cjs')) return 'javascript';
+            if (lower.endsWith('.json')) return 'json';
+            if (lower.endsWith('.ts')) return 'typescript';
+            if (lower.endsWith('.md')) return 'markdown';
+            return 'plaintext';
+        }
+
+        function scheduleAutosave() {
+            if (!currentEditingFile) return;
+            document.getElementById('editorStatus').innerText = "Unsaved draft changes...";
+
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(async () => {
+                if (!currentEditingFile) return;
+                document.getElementById('editorStatus').innerText = "Auto-saving draft...";
+                await supabaseClient
+                    .from('project_files')
+                    .update({ content: currentEditingFile.content, updated_at: new Date() })
+                    .eq('id', currentEditingFile.id);
+                document.getElementById('editorStatus').innerText = "Draft changes saved locally";
+            }, editorSettings.autoSaveDelay ?? 1000);
+        }
+
+        function initMonacoIfNeeded(callback) {
+            if (window.monaco && window.monaco.editor) {
+                callback();
+                return;
+            }
+
+            if (!window.require) {
+                console.warn('Monaco loader not available; using textarea fallback');
+                return;
+            }
+
+            window.require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.0/min/vs' } });
+            window.require(['vs/editor/editor.main'], function (monaco) {
+                window.monaco = monaco;
+                callback();
+            });
+        }
+
+        function ensureMonacoEditor(content, filename) {
+            const container = document.getElementById('monacoEditor');
+            if (!container) return;
+
+            initMonacoIfNeeded(() => {
+                const language = getLanguageFromFilename(filename);
+
+                if (!monacoEditor) {
+                    monacoEditor = window.monaco.editor.create(container, {
+                        value: content || '',
+                        language,
+                        theme: editorSettings.theme || 'vs-light',
+                        fontSize: editorSettings.fontSize ?? 13,
+                        wordWrap: editorSettings.wordWrap || 'on',
+                        automaticLayout: true,
+                        minimap: { enabled: false }
+                    });
+
+                    if (monacoDisposer) monacoDisposer.dispose();
+                    monacoDisposer = monacoEditor.onDidChangeModelContent(() => {
+                        if (!currentEditingFile) return;
+                        currentEditingFile.content = monacoEditor.getValue();
+                        scheduleAutosave();
+                    });
+                } else {
+                    const model = monacoEditor.getModel();
+                    if (model) {
+                        model.setValue(content || '');
+                        window.monaco.editor.setModelLanguage(model, language);
+                    }
+                }
+
+                applyEditorSettingsToMonaco();
+            });
+        }
 
         async function checkSession() {
             const { data: { session } } = await supabaseClient.auth.getSession();
@@ -310,14 +491,6 @@
             document.getElementById('configHelpModal').classList.add('hidden');
         }
 
-        function open404Help() {
-            document.getElementById('custom404HelpModal').classList.remove('hidden');
-        }
-
-        function close404Help() {
-            document.getElementById('custom404HelpModal').classList.add('hidden');
-        }
-
         function closeDeploySuccess() {
             document.getElementById('deploySuccessModal').classList.add('hidden');
         }
@@ -332,13 +505,9 @@
             if (!configExists) {
                 const defaultConfig = {
                     password: "",
-                    maintenance: false,
                     devices: { mobile: true, tablet: true, desktop: true },
                     loadingText: "Please wait...",
-                    showLoader: true,
-                    titleSuffix: " | LiteStack",
-                    description: "Made with LiteStack",
-                    globalCSS: ""
+                    showLoader: true
                 };
                 const { data, error } = await supabaseClient
                     .from('project_files')
@@ -359,65 +528,6 @@
                 editFile(configExists.id);
             }
             openConfigHelp();
-        }
-
-        async function handle404Recommended() {
-            const exists = projectFiles.find(f => f.name.toLowerCase() === '404.html');
-            if (!exists) {
-                const content = `<!DOCTYPE html>\n<html>\n<head><title>404 Not Found</title></head>\n<body style="font-family:sans-serif; text-align:center; padding-top:100px;"><h1>404</h1><p>Oops! This page doesn't exist.</p><a href="index.html">Go Home</a></body>\n</html>`;
-                const { data, error } = await supabaseClient
-                    .from('project_files')
-                    .insert([{ project_id: currentProject.id, name: '404.html', content }])
-                    .select()
-                    .single();
-                
-                if (!error) {
-                    projectFiles.push(data);
-                    renderFileList();
-                    editFile(data.id);
-                }
-            } else {
-                editFile(exists.id);
-            }
-            open404Help();
-        }
-
-        function renderRecommended() {
-            const container = document.getElementById('recommendedFiles');
-            container.innerHTML = '';
-
-            const hasConfig = projectFiles.some(f => f.name.toLowerCase() === 'config.json');
-            const has404 = projectFiles.some(f => f.name.toLowerCase() === '404.html');
-
-            if (!hasConfig) {
-                const div = document.createElement('div');
-                div.onclick = handleConfigRecommended;
-                div.className = "p-3 bg-white border border-blue-100 rounded-xl cursor-pointer hover:shadow-md transition group";
-                div.innerHTML = `
-                    <div class="flex items-center space-x-3">
-                        <div class="w-8 h-8 bg-blue-50 text-blue-600 rounded flex items-center justify-center text-xs group-hover:bg-blue-600 group-hover:text-white transition">
-                            <i class="fas fa-cog"></i>
-                        </div>
-                        <span class="text-sm font-bold text-gray-900">config.json</span>
-                    </div>
-                `;
-                container.appendChild(div);
-            }
-
-            if (!has404) {
-                const div = document.createElement('div');
-                div.onclick = handle404Recommended;
-                div.className = "p-3 bg-white border border-orange-100 rounded-xl cursor-pointer hover:shadow-md transition group";
-                div.innerHTML = `
-                    <div class="flex items-center space-x-3">
-                        <div class="w-8 h-8 bg-orange-50 text-orange-600 rounded flex items-center justify-center text-xs group-hover:bg-orange-600 group-hover:text-white transition">
-                            <i class="fas fa-ghost"></i>
-                        </div>
-                        <span class="text-sm font-bold text-gray-900">404.html</span>
-                    </div>
-                `;
-                container.appendChild(div);
-            }
         }
 
         function showError(title, msg) {
@@ -460,7 +570,7 @@
                 .single();
 
             if (existing) {
-                showError("Duplicate Project", `A project named "${name}" already exists.`);
+                showError("Duplicate Project", `A project named "${name}" already exists. Please choose a different name.`);
                 createBtn.disabled = false;
                 createBtn.innerText = "Create & Edit";
                 return;
@@ -490,19 +600,11 @@
             createBtn.innerText = "Create & Edit";
         };
 
-        function deleteProject(id) {
-            const modal = document.getElementById('deleteConfirmModal');
-            document.getElementById('deleteConfirmMsg').innerText = "This will delete the project and all its files forever.";
-            modal.classList.remove('hidden');
-            document.getElementById('finalDeleteBtn').onclick = async () => {
+        async function deleteProject(id) {
+            if (confirm("Delete project and all its files?")) {
                 await supabaseClient.from('projects').delete().eq('id', id);
-                closeDeleteModal();
                 fetchProjects();
-            };
-        }
-
-        function closeDeleteModal() {
-            document.getElementById('deleteConfirmModal').classList.add('hidden');
+            }
         }
 
         async function openEditor(index) {
@@ -518,6 +620,7 @@
             }
             
             document.getElementById('editorOverlay').classList.remove('hidden');
+            loadProjectSettings(currentProject.id);
             
             const { data, error } = await supabaseClient
                 .from('project_files')
@@ -536,7 +639,9 @@
             document.getElementById('editorOverlay').classList.add('hidden');
             currentEditingFile = null;
             document.getElementById('fileEditor').classList.add('hidden');
+            document.getElementById('monacoEditor').classList.add('hidden');
             document.getElementById('noFileSelected').classList.remove('hidden');
+            document.getElementById('projectSettingsPanel').classList.add('hidden');
             fetchProjects();
         }
 
@@ -552,7 +657,7 @@
                 li.innerHTML = `
                     <div class="flex items-center justify-between w-full">
                         <div class="flex items-center flex-1 overflow-hidden" onclick="editFile('${file.id}')">
-                            <i class="fas ${file.name.toLowerCase() === 'config.json' ? 'fa-cog text-amber-400' : (isSpecial ? 'fa-star text-amber-400' : 'fa-file-code opacity-50')} mr-2"></i>
+                            <i class="fas ${isSpecial ? 'fa-star text-amber-400' : 'fa-file-code opacity-50'} mr-2"></i>
                             <span class="truncate">${file.name}</span>
                         </div>
                         <button onclick="deleteFile('${file.id}')" class="${currentEditingFile?.id === file.id ? 'text-blue-200' : 'text-gray-300'} hover:text-red-500 transition ml-2">
@@ -562,21 +667,10 @@
                 `;
                 list.appendChild(li);
             });
-            renderRecommended();
         }
 
-        function addNewFile() {
-            document.getElementById('fileCreationModal').classList.remove('hidden');
-            document.getElementById('newFileNameInput').focus();
-        }
-
-        function closeFileCreationModal() {
-            document.getElementById('fileCreationModal').classList.add('hidden');
-            document.getElementById('newFileNameInput').value = '';
-        }
-
-        async function confirmFileCreation() {
-            const filename = document.getElementById('newFileNameInput').value;
+        async function addNewFile() {
+            const filename = prompt("Enter file name (e.g. style.css):");
             if (filename) {
                 const { data, error } = await supabaseClient
                     .from('project_files')
@@ -588,9 +682,6 @@
                     projectFiles.push(data);
                     renderFileList();
                     editFile(data.id);
-                    closeFileCreationModal();
-                } else {
-                    showError("Error", "File already exists or invalid name.");
                 }
             }
         }
@@ -600,10 +691,18 @@
             currentEditingFile = file;
             const editor = document.getElementById('fileEditor');
             const placeholder = document.getElementById('noFileSelected');
+            const monacoContainer = document.getElementById('monacoEditor');
             
             placeholder.classList.add('hidden');
-            editor.classList.remove('hidden');
-            editor.value = file.content;
+            editor.classList.add('hidden');
+
+            if (monacoContainer) {
+                monacoContainer.classList.remove('hidden');
+                ensureMonacoEditor(file.content || '', file.name);
+            } else {
+                editor.classList.remove('hidden');
+                editor.value = file.content;
+            }
             
             renderFileList();
         }
@@ -611,17 +710,7 @@
         document.getElementById('fileEditor').addEventListener('input', (e) => {
             if (currentEditingFile) {
                 currentEditingFile.content = e.target.value;
-                document.getElementById('editorStatus').innerText = "Unsaved draft changes...";
-                
-                clearTimeout(saveTimeout);
-                saveTimeout = setTimeout(async () => {
-                    document.getElementById('editorStatus').innerText = "Auto-saving draft...";
-                    await supabaseClient
-                        .from('project_files')
-                        .update({ content: currentEditingFile.content, updated_at: new Date() })
-                        .eq('id', currentEditingFile.id);
-                    document.getElementById('editorStatus').innerText = "Draft changes saved locally";
-                }, 1000);
+                scheduleAutosave();
             }
         });
 
@@ -652,13 +741,9 @@
             }
         }
 
-        function deleteFile(id) {
+        async function deleteFile(id) {
             if (projectFiles.length <= 1) return;
-            const modal = document.getElementById('deleteConfirmModal');
-            document.getElementById('deleteConfirmMsg').innerText = "Delete this file? You'll need to recreate it manually or via recommendations.";
-            modal.classList.remove('hidden');
-            
-            document.getElementById('finalDeleteBtn').onclick = async () => {
+            if (confirm(`Delete file?`)) {
                 await supabaseClient.from('project_files').delete().eq('id', id);
                 projectFiles = projectFiles.filter(f => f.id !== id);
                 if (currentEditingFile?.id === id) {
@@ -666,9 +751,8 @@
                     document.getElementById('fileEditor').classList.add('hidden');
                     document.getElementById('noFileSelected').classList.remove('hidden');
                 }
-                closeDeleteModal();
                 renderFileList();
-            };
+            }
         }
 
         async function deploySiteAction() {
