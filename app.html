@@ -7,11 +7,13 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #f9fafb; color: #111111; }
-        .glass { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); }
         .modal-overlay { background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(4px); transition: all 0.3s ease; }
+        #monaco-container { height: 100%; width: 100%; }
+        .tab-active { border-bottom: 2px solid #2563eb; color: #2563eb; }
     </style>
 </head>
 <body class="antialiased">
@@ -23,7 +25,7 @@
                     <div class="w-8 h-8 bg-blue-600 rounded flex items-center justify-center">
                         <i class="fas fa-layer-group text-white text-xs"></i>
                     </div>
-                    <span class="text-xl font-bold tracking-tight">LiteStack</span>
+                    <span class="text-xl font-bold tracking-tight text-gray-900">LiteStack</span>
                 </div>
                 <div class="flex items-center space-x-4">
                     <span id="userEmail" class="text-sm text-gray-500 font-medium hidden md:block"></span>
@@ -42,11 +44,6 @@
             <button id="newProjectBtn" onclick="openNewProjectModal()" class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-100 disabled:opacity-50 disabled:cursor-not-allowed">
                 <i class="fas fa-plus mr-2"></i> New Project
             </button>
-        </div>
-
-        <div id="projectLimitNotice" class="hidden mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm flex items-center">
-            <i class="fas fa-info-circle mr-3"></i>
-            <span>You've reached the limit of 2 projects on the free tier. <a href="/projectlimit.html" class="underline font-bold hover:text-amber-900">Learn more</a></span>
         </div>
 
         <div id="projectsGrid" class="grid md:grid-cols-2 gap-6"></div>
@@ -93,7 +90,7 @@
                 <i class="fas fa-trash-alt text-2xl"></i>
             </div>
             <h3 class="text-xl font-bold mb-2">Are you sure?</h3>
-            <p id="deleteConfirmMsg" class="text-gray-500 text-sm mb-6">This action cannot be undone.</p>
+            <p id="deleteConfirmMsg" class="text-gray-500 text-sm mb-6"></p>
             <div class="flex space-x-3">
                 <button onclick="closeDeleteModal()" class="flex-1 py-3 text-gray-500 font-bold">Cancel</button>
                 <button id="finalDeleteBtn" class="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold">Delete</button>
@@ -101,39 +98,39 @@
         </div>
     </div>
 
-    <div id="configHelpModal" class="fixed inset-0 modal-overlay z-[400] hidden flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl p-8 relative max-h-[90vh] overflow-y-auto">
+    <div id="configHelpModal" class="fixed inset-0 modal-overlay z-[600] hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl p-8 relative">
             <button onclick="closeConfigHelp()" class="absolute top-6 right-6 text-gray-400 hover:text-black transition">
                 <i class="fas fa-times"></i>
             </button>
             <div class="flex items-center space-x-4 mb-6">
                 <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-xl">
-                    <i class="fas fa-sliders-h"></i>
+                    <i class="fas fa-cog"></i>
                 </div>
                 <div>
-                    <h3 class="text-2xl font-bold text-gray-900">Advanced Settings</h3>
-                    <p class="text-gray-500 text-sm">JSON configuration options</p>
+                    <h3 class="text-2xl font-bold text-gray-900">Config Settings</h3>
+                    <p class="text-gray-500 text-sm">JSON Configuration parameters</p>
                 </div>
             </div>
-            <div class="space-y-4 mb-8">
-                <div class="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                    <p class="text-sm font-bold text-gray-900 flex items-center"><i class="fas fa-lock mr-2 text-blue-600"></i> Access & Security</p>
-                    <p class="text-xs text-gray-500 mt-1"><code>"password": "secret"</code> or <code>"maintenance": true</code></p>
+            <div class="space-y-4 mb-8 text-sm">
+                <div class="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                    <p class="font-bold">password</p>
+                    <p class="text-gray-500">Protect your site with a password.</p>
                 </div>
-                <div class="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                    <p class="text-sm font-bold text-gray-900 flex items-center"><i class="fas fa-search mr-2 text-blue-600"></i> SEO & Meta</p>
-                    <p class="text-xs text-gray-500 mt-1"><code>"titleSuffix": " | My Brand"</code>, <code>"description": "..."</code></p>
+                <div class="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                    <p class="font-bold">maintenance</p>
+                    <p class="text-gray-500">Set to true to show a maintenance screen.</p>
                 </div>
-                <div class="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                    <p class="text-sm font-bold text-gray-900 flex items-center"><i class="fas fa-palette mr-2 text-blue-600"></i> Global Injection</p>
-                    <p class="text-xs text-gray-500 mt-1"><code>"globalCSS": "body { filter: grayscale(1); }"</code></p>
+                <div class="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                    <p class="font-bold">globalCSS</p>
+                    <p class="text-gray-500">CSS to be injected across all pages.</p>
                 </div>
             </div>
-            <button onclick="closeConfigHelp()" class="w-full bg-gray-900 text-white py-4 rounded-2xl font-bold hover:bg-black transition">I understand</button>
+            <button onclick="closeConfigHelp()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold">Got it</button>
         </div>
     </div>
 
-    <div id="custom404HelpModal" class="fixed inset-0 modal-overlay z-[400] hidden flex items-center justify-center p-4">
+    <div id="custom404HelpModal" class="fixed inset-0 modal-overlay z-[600] hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl p-8 text-center relative">
             <button onclick="close404Help()" class="absolute top-6 right-6 text-gray-400 hover:text-black transition">
                 <i class="fas fa-times"></i>
@@ -141,40 +138,25 @@
             <div class="w-20 h-20 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl">
                 <i class="fas fa-ghost"></i>
             </div>
-            <h3 class="text-2xl font-bold text-gray-900 mb-2">Custom Error Page</h3>
-            <p class="text-gray-500 mb-6">By creating a <code>404.html</code>, users will see your branded error page instead of the default one when a link is broken.</p>
-            <button onclick="close404Help()" class="w-full bg-orange-600 text-white py-4 rounded-2xl font-bold hover:bg-orange-700 transition">Got it</button>
+            <h3 class="text-2xl font-bold text-gray-900 mb-2">404 Error Page</h3>
+            <p class="text-gray-500 mb-6">Edit this file to customize how users see the "Page Not Found" screen.</p>
+            <button onclick="close404Help()" class="w-full bg-orange-600 text-white py-4 rounded-2xl font-bold">I'll edit it</button>
         </div>
     </div>
 
-    <div id="deploySuccessModal" class="fixed inset-0 modal-overlay z-[500] hidden flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl p-8 text-center">
-            <div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl">
-                <i class="fas fa-check"></i>
-            </div>
-            <h3 class="text-2xl font-bold text-gray-900 mb-2">Successfully Deployed!</h3>
-            <p class="text-gray-500 mb-8">Your site is live and reachable at the URL below.</p>
-            <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100 flex items-center justify-between mb-8 group">
-                <code id="successSiteUrl" class="text-blue-600 font-medium truncate">...</code>
-                <button onclick="copyDeployedUrl()" class="ml-4 text-gray-400 hover:text-blue-600 transition"><i class="fas fa-copy"></i></button>
-            </div>
-            <button onclick="closeDeploySuccess()" class="w-full bg-gray-900 text-white py-4 rounded-2xl font-bold hover:bg-black transition shadow-xl">Back to Editor</button>
-        </div>
-    </div>
-
-    <div id="errorModal" class="fixed inset-0 modal-overlay z-[300] hidden flex items-center justify-center p-4">
+    <div id="errorModal" class="fixed inset-0 modal-overlay z-[700] hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-8 text-center">
             <div class="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <i class="fas fa-exclamation-triangle text-2xl"></i>
             </div>
             <h3 id="errorTitle" class="text-xl font-bold text-gray-900 mb-2">Error</h3>
             <p id="errorMessage" class="text-gray-500 mb-6 text-sm"></p>
-            <button onclick="closeErrorModal()" class="w-full bg-gray-900 text-white py-3 rounded-xl font-bold hover:bg-black transition">Dismiss</button>
+            <button onclick="closeErrorModal()" class="w-full bg-gray-900 text-white py-3 rounded-xl font-bold">Dismiss</button>
         </div>
     </div>
 
     <div id="editorOverlay" class="fixed inset-0 bg-white z-[200] hidden flex flex-col">
-        <div class="border-b border-gray-100 px-6 py-4 flex items-center justify-between">
+        <div class="border-b border-gray-100 px-6 py-4 flex items-center justify-between bg-white">
             <div class="flex items-center space-x-4">
                 <button onclick="closeEditor()" class="text-gray-400 hover:text-black transition"><i class="fas fa-arrow-left"></i></button>
                 <div class="flex flex-col">
@@ -187,29 +169,59 @@
                 <button onclick="addNewFile()" class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-bold hover:bg-gray-50 transition">
                     <i class="fas fa-plus mr-2"></i> New File
                 </button>
-                <button onclick="document.getElementById('fileInput').click()" class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-bold hover:bg-gray-50 transition">
-                    <i class="fas fa-upload mr-2"></i> Upload
-                </button>
-                <input type="file" id="fileInput" class="hidden" multiple onchange="handleFileUpload(event)">
                 <button onclick="deploySiteAction()" class="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-100">Deploy</button>
             </div>
         </div>
+        
         <div class="flex-1 flex overflow-hidden">
             <div class="w-72 border-r border-gray-100 bg-gray-50 flex flex-col overflow-hidden">
                 <div class="p-4 flex-1 overflow-y-auto">
                     <h3 class="text-xs font-bold uppercase text-gray-400 mb-4 tracking-widest">Recommended</h3>
                     <div id="recommendedFiles" class="mb-8 space-y-2"></div>
                     
-                    <h3 class="text-xs font-bold uppercase text-gray-400 mb-4 tracking-widest">Site Files</h3>
+                    <h3 class="text-xs font-bold uppercase text-gray-400 mb-4 tracking-widest">Files</h3>
                     <ul id="fileList" class="space-y-1"></ul>
                 </div>
             </div>
-            <div class="flex-1 bg-white relative">
-                <div id="noFileSelected" class="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
-                    <i class="fas fa-file-code text-4xl mb-4 opacity-20"></i>
-                    <p>Select a file to edit or create a new one.</p>
+            <div class="flex-1 bg-white flex flex-col overflow-hidden">
+                <div class="flex border-b border-gray-100 px-4">
+                    <button id="tab-code" onclick="switchEditorTab('code')" class="px-6 py-3 text-sm font-bold text-gray-400 tab-active transition">Code Editor</button>
+                    <button id="tab-settings" onclick="switchEditorTab('settings')" class="px-6 py-3 text-sm font-bold text-gray-400 transition">Project Settings</button>
                 </div>
-                <textarea id="fileEditor" class="hidden w-full h-full p-8 font-mono text-sm outline-none resize-none bg-gray-50" spellcheck="false"></textarea>
+                
+                <div id="codeTabContent" class="flex-1 relative">
+                    <div id="noFileSelected" class="absolute inset-0 flex flex-col items-center justify-center text-gray-400 z-10 bg-white">
+                        <i class="fas fa-file-code text-4xl mb-4 opacity-20"></i>
+                        <p>Select a file to edit</p>
+                    </div>
+                    <div id="monaco-container"></div>
+                </div>
+
+                <div id="settingsTabContent" class="hidden flex-1 overflow-y-auto p-10 bg-gray-50">
+                    <div class="max-w-2xl mx-auto space-y-8">
+                        <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+                            <h3 class="text-lg font-bold mb-6">General Project Settings</h3>
+                            <div class="space-y-6">
+                                <div>
+                                    <label class="block text-xs font-bold uppercase text-gray-400 mb-2">Display Name</label>
+                                    <input type="text" id="settingsProjName" class="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-blue-500 bg-gray-50" disabled>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold uppercase text-gray-400 mb-2">Live Status</label>
+                                    <div class="flex items-center space-x-2">
+                                        <div id="statusDot" class="w-3 h-3 rounded-full bg-gray-300"></div>
+                                        <span id="statusText" class="text-sm font-medium text-gray-600">Checking...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+                            <h3 class="text-lg font-bold mb-4 text-red-600">Danger Zone</h3>
+                            <p class="text-gray-500 text-sm mb-6">Once you delete a project, there is no going back. Please be certain.</p>
+                            <button onclick="handleSettingsDelete()" class="px-6 py-3 border border-red-200 text-red-600 rounded-xl font-bold hover:bg-red-50 transition">Delete Project</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -222,14 +234,69 @@
         let projectFiles = []; 
         let currentEditingFile = null;
         let saveTimeout = null;
+        let editorInstance = null;
 
-        const SPECIAL_FILES = ['index.html', '404.html', 'config.json', 'robots.txt', '_worker.js'];
+        require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } });
+        require(['vs/editor/editor.main'], function() {
+            monaco.languages.html.htmlDefaults.setOptions({
+                suggest: { html5: true }
+            });
+
+            monaco.languages.registerCompletionItemProvider('html', {
+                provideCompletionItems: function() {
+                    return {
+                        suggestions: [
+                            {
+                                label: 'ls-btn',
+                                kind: monaco.languages.CompletionItemKind.Snippet,
+                                insertText: '<button class="bg-blue-600 text-white px-4 py-2 rounded-xl font-bold hover:bg-blue-700 transition">Button</button>',
+                                insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                                documentation: 'LiteStack Tailwind Button'
+                            },
+                            {
+                                label: 'ls-card',
+                                kind: monaco.languages.CompletionItemKind.Snippet,
+                                insertText: '<div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">\n\t<h3 class="text-lg font-bold mb-2">Title</h3>\n\t<p class="text-gray-500">Content</p>\n</div>',
+                                insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                                documentation: 'LiteStack Tailwind Card'
+                            }
+                        ]
+                    };
+                }
+            });
+
+            editorInstance = monaco.editor.create(document.getElementById('monaco-container'), {
+                value: '',
+                language: 'html',
+                theme: 'vs-light',
+                automaticLayout: true,
+                fontSize: 14,
+                fontFamily: 'JetBrains Mono, Menlo, Monaco, Courier New, monospace',
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                padding: { top: 20 },
+                lineNumbers: 'on',
+                roundedSelection: true,
+                quickSuggestions: true,
+                suggestOnTriggerCharacters: true,
+                wordBasedSuggestions: true
+            });
+
+            editorInstance.onDidChangeModelContent(() => {
+                if (currentEditingFile) {
+                    const newValue = editorInstance.getValue();
+                    if (newValue !== currentEditingFile.content) {
+                        currentEditingFile.content = newValue;
+                        triggerAutoSave();
+                    }
+                }
+            });
+        });
 
         async function checkSession() {
             const { data: { session } } = await supabaseClient.auth.getSession();
-            if (!session) {
-                window.location.href = '/';
-            } else {
+            if (!session) window.location.href = '/';
+            else {
                 document.getElementById('userEmail').innerText = session.user.email;
                 fetchProjects();
             }
@@ -240,7 +307,6 @@
                 .from('projects')
                 .select('*')
                 .order('created_at', { ascending: false });
-            
             if (!error) {
                 projects = data;
                 renderProjects();
@@ -250,280 +316,52 @@
         function renderProjects() {
             const grid = document.getElementById('projectsGrid');
             const empty = document.getElementById('emptyState');
-            const limitNotice = document.getElementById('projectLimitNotice');
-            const newBtn = document.getElementById('newProjectBtn');
-
             grid.innerHTML = '';
             
-            if (projects.length === 0) {
-                empty.classList.remove('hidden');
-            } else {
+            if (projects.length === 0) empty.classList.remove('hidden');
+            else {
                 empty.classList.add('hidden');
                 projects.forEach((p, index) => {
-                    const isDraft = p.status !== 'deployed';
                     const card = document.createElement('div');
                     card.className = "bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition group relative";
                     card.innerHTML = `
                         <div class="flex justify-between items-start mb-4">
-                            <div class="flex flex-col">
-                                ${isDraft ? '<span class="text-[9px] font-black uppercase tracking-widest text-orange-500 mb-1">Draft</span>' : ''}
-                                <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center font-bold">
-                                    ${p.name.charAt(0).toUpperCase()}
-                                </div>
+                            <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center font-bold">
+                                ${p.name.charAt(0).toUpperCase()}
                             </div>
                             <button onclick="deleteProject('${p.id}')" class="text-gray-300 hover:text-red-500 transition"><i class="fas fa-trash-alt"></i></button>
                         </div>
                         <h3 class="text-lg font-bold mb-1">${p.name}</h3>
-                        <p class="text-gray-400 text-xs mb-4 font-mono truncate">https://litestack.pages.dev/preview?site=${p.name}&page=index.html</p>
-                        <div class="flex space-x-3">
-                            <button onclick="openEditor(${index})" class="flex-1 bg-gray-50 text-gray-900 py-2 rounded-lg text-sm font-bold hover:bg-gray-100 transition">Manage Files</button>
-                            <a href="https://litestack.pages.dev/preview?site=${p.name}&page=index.html" target="_blank" class="px-3 bg-blue-50 text-blue-600 py-2 rounded-lg text-sm hover:bg-blue-100 transition flex items-center">
-                                <i class="fas fa-external-link-alt"></i>
-                            </a>
-                        </div>
+                        <p class="text-gray-400 text-xs mb-4 truncate">https://litestack.pages.dev/preview?site=${p.name}</p>
+                        <button onclick="openEditor(${index})" class="w-full bg-gray-50 text-gray-900 py-2.5 rounded-xl text-sm font-bold hover:bg-gray-100 transition">Manage Files</button>
                     `;
                     grid.appendChild(card);
                 });
             }
-
-            const isLimited = projects.length >= 2;
-            limitNotice.classList.toggle('hidden', !isLimited);
-            newBtn.disabled = isLimited;
-        }
-
-        function openNewProjectModal() {
-            document.getElementById('modalOverlay').classList.remove('hidden');
-            document.getElementById('projectName').focus();
-        }
-
-        function closeModal() {
-            document.getElementById('modalOverlay').classList.add('hidden');
-            document.getElementById('projectForm').reset();
-            document.getElementById('slugPreview').innerText = '...';
-        }
-
-        function openConfigHelp() {
-            document.getElementById('configHelpModal').classList.remove('hidden');
-        }
-
-        function closeConfigHelp() {
-            document.getElementById('configHelpModal').classList.add('hidden');
-        }
-
-        function open404Help() {
-            document.getElementById('custom404HelpModal').classList.remove('hidden');
-        }
-
-        function close404Help() {
-            document.getElementById('custom404HelpModal').classList.add('hidden');
-        }
-
-        function closeDeploySuccess() {
-            document.getElementById('deploySuccessModal').classList.add('hidden');
-        }
-
-        function copyDeployedUrl() {
-            const url = document.getElementById('successSiteUrl').innerText;
-            navigator.clipboard.writeText(url);
-        }
-
-        async function handleConfigRecommended() {
-            const configExists = projectFiles.find(f => f.name.toLowerCase() === 'config.json');
-            if (!configExists) {
-                const defaultConfig = {
-                    password: "",
-                    maintenance: false,
-                    devices: { mobile: true, tablet: true, desktop: true },
-                    loadingText: "Please wait...",
-                    showLoader: true,
-                    titleSuffix: " | LiteStack",
-                    description: "Made with LiteStack",
-                    globalCSS: ""
-                };
-                const { data, error } = await supabaseClient
-                    .from('project_files')
-                    .insert([{ 
-                        project_id: currentProject.id, 
-                        name: 'config.json', 
-                        content: JSON.stringify(defaultConfig, null, 2) 
-                    }])
-                    .select()
-                    .single();
-                
-                if (!error) {
-                    projectFiles.push(data);
-                    renderFileList();
-                    editFile(data.id);
-                }
-            } else {
-                editFile(configExists.id);
-            }
-            openConfigHelp();
-        }
-
-        async function handle404Recommended() {
-            const exists = projectFiles.find(f => f.name.toLowerCase() === '404.html');
-            if (!exists) {
-                const content = `<!DOCTYPE html>\n<html>\n<head><title>404 Not Found</title></head>\n<body style="font-family:sans-serif; text-align:center; padding-top:100px;"><h1>404</h1><p>Oops! This page doesn't exist.</p><a href="index.html">Go Home</a></body>\n</html>`;
-                const { data, error } = await supabaseClient
-                    .from('project_files')
-                    .insert([{ project_id: currentProject.id, name: '404.html', content }])
-                    .select()
-                    .single();
-                
-                if (!error) {
-                    projectFiles.push(data);
-                    renderFileList();
-                    editFile(data.id);
-                }
-            } else {
-                editFile(exists.id);
-            }
-            open404Help();
-        }
-
-        function renderRecommended() {
-            const container = document.getElementById('recommendedFiles');
-            container.innerHTML = '';
-
-            const hasConfig = projectFiles.some(f => f.name.toLowerCase() === 'config.json');
-            const has404 = projectFiles.some(f => f.name.toLowerCase() === '404.html');
-
-            if (!hasConfig) {
-                const div = document.createElement('div');
-                div.onclick = handleConfigRecommended;
-                div.className = "p-3 bg-white border border-blue-100 rounded-xl cursor-pointer hover:shadow-md transition group";
-                div.innerHTML = `
-                    <div class="flex items-center space-x-3">
-                        <div class="w-8 h-8 bg-blue-50 text-blue-600 rounded flex items-center justify-center text-xs group-hover:bg-blue-600 group-hover:text-white transition">
-                            <i class="fas fa-cog"></i>
-                        </div>
-                        <span class="text-sm font-bold text-gray-900">config.json</span>
-                    </div>
-                `;
-                container.appendChild(div);
-            }
-
-            if (!has404) {
-                const div = document.createElement('div');
-                div.onclick = handle404Recommended;
-                div.className = "p-3 bg-white border border-orange-100 rounded-xl cursor-pointer hover:shadow-md transition group";
-                div.innerHTML = `
-                    <div class="flex items-center space-x-3">
-                        <div class="w-8 h-8 bg-orange-50 text-orange-600 rounded flex items-center justify-center text-xs group-hover:bg-orange-600 group-hover:text-white transition">
-                            <i class="fas fa-ghost"></i>
-                        </div>
-                        <span class="text-sm font-bold text-gray-900">404.html</span>
-                    </div>
-                `;
-                container.appendChild(div);
-            }
-        }
-
-        function showError(title, msg) {
-            document.getElementById('errorTitle').innerText = title;
-            document.getElementById('errorMessage').innerText = msg;
-            document.getElementById('errorModal').classList.remove('hidden');
-        }
-
-        function closeErrorModal() {
-            document.getElementById('errorModal').classList.add('hidden');
-        }
-
-        document.getElementById('projectName').addEventListener('input', (e) => {
-            const val = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-');
-            document.getElementById('slugPreview').innerText = val || '...';
-        });
-
-        document.getElementById('projectForm').onsubmit = async (e) => {
-            e.preventDefault();
-            const createBtn = document.getElementById('createBtn');
-            const name = document.getElementById('projectName').value.toLowerCase().replace(/[^a-z0-9-]/g, '-');
-            
-            if (projects.length >= 2) return;
-            createBtn.disabled = true;
-            createBtn.innerText = "Creating...";
-
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            const user = session?.user;
-
-            if (!user) {
-                showError("Session Expired", "Please log in again to continue.");
-                window.location.href = '/';
-                return;
-            }
-
-            const { data: existing } = await supabaseClient
-                .from('projects')
-                .select('id')
-                .eq('name', name)
-                .single();
-
-            if (existing) {
-                showError("Duplicate Project", `A project named "${name}" already exists.`);
-                createBtn.disabled = false;
-                createBtn.innerText = "Create & Edit";
-                return;
-            }
-
-            const { data, error } = await supabaseClient
-                .from('projects')
-                .insert([{ name, user_id: user.id, status: 'draft' }])
-                .select()
-                .single();
-
-            if (!error) {
-                await supabaseClient.from('project_files').insert([{ 
-                    project_id: data.id, 
-                    name: 'index.html', 
-                    content: '<!DOCTYPE html>\n<html>\n<head>\n<title>' + name + '</title>\n<style>body{font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;background:#f0f4f8;}div{background:white;padding:2rem;border-radius:1rem;box-shadow:0 10px 15px rgba(0,0,0,0.1);}</style>\n</head>\n<body>\n<div><h1>Welcome to ' + name + '</h1><p>Successfully deployed on LiteStack.</p></div>\n</body>\n</html>' 
-                }]);
-                
-                await fetchProjects();
-                closeModal();
-                const newIdx = projects.findIndex(p => p.id === data.id);
-                openEditor(newIdx);
-            } else {
-                showError("Creation Failed", error.message);
-            }
-            createBtn.disabled = false;
-            createBtn.innerText = "Create & Edit";
-        };
-
-        function deleteProject(id) {
-            const modal = document.getElementById('deleteConfirmModal');
-            document.getElementById('deleteConfirmMsg').innerText = "This will delete the project and all its files forever.";
-            modal.classList.remove('hidden');
-            document.getElementById('finalDeleteBtn').onclick = async () => {
-                await supabaseClient.from('projects').delete().eq('id', id);
-                closeDeleteModal();
-                fetchProjects();
-            };
-        }
-
-        function closeDeleteModal() {
-            document.getElementById('deleteConfirmModal').classList.add('hidden');
         }
 
         async function openEditor(index) {
             currentProject = projects[index];
             document.getElementById('editorTitle').innerText = currentProject.name;
-            const statusLabel = document.getElementById('editorSubStatus');
-            if (currentProject.status === 'deployed') {
-                statusLabel.innerText = "Live Deployment";
-                statusLabel.classList.replace('text-orange-500', 'text-green-500');
-            } else {
-                statusLabel.innerText = "Draft Mode";
-                statusLabel.classList.replace('text-green-500', 'text-orange-500');
-            }
+            document.getElementById('settingsProjName').value = currentProject.name;
             
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            if (currentProject.status === 'deployed') {
+                statusDot.className = "w-3 h-3 rounded-full bg-green-500";
+                statusText.innerText = "Live and Deployed";
+                document.getElementById('editorSubStatus').innerText = "Live Deployment";
+                document.getElementById('editorSubStatus').className = "text-[10px] uppercase font-black text-green-500 tracking-tighter";
+            } else {
+                statusDot.className = "w-3 h-3 rounded-full bg-orange-400";
+                statusText.innerText = "Draft Mode (Unpublished)";
+                document.getElementById('editorSubStatus').innerText = "Draft Mode";
+                document.getElementById('editorSubStatus').className = "text-[10px] uppercase font-black text-orange-500 tracking-tighter";
+            }
+
             document.getElementById('editorOverlay').classList.remove('hidden');
             
-            const { data, error } = await supabaseClient
-                .from('project_files')
-                .select('*')
-                .eq('project_id', currentProject.id);
-            
+            const { data, error } = await supabaseClient.from('project_files').select('*').eq('project_id', currentProject.id);
             if (!error) {
                 projectFiles = data;
                 renderFileList();
@@ -532,12 +370,23 @@
             }
         }
 
-        function closeEditor() {
-            document.getElementById('editorOverlay').classList.add('hidden');
-            currentEditingFile = null;
-            document.getElementById('fileEditor').classList.add('hidden');
-            document.getElementById('noFileSelected').classList.remove('hidden');
-            fetchProjects();
+        function switchEditorTab(tab) {
+            const codeTab = document.getElementById('tab-code');
+            const setTab = document.getElementById('tab-settings');
+            const codeContent = document.getElementById('codeTabContent');
+            const setContent = document.getElementById('settingsTabContent');
+
+            if (tab === 'code') {
+                codeTab.classList.add('tab-active');
+                setTab.classList.remove('tab-active');
+                codeContent.classList.remove('hidden');
+                setContent.classList.add('hidden');
+            } else {
+                setTab.classList.add('tab-active');
+                codeTab.classList.remove('tab-active');
+                setContent.classList.remove('hidden');
+                codeContent.classList.add('hidden');
+            }
         }
 
         function renderFileList() {
@@ -545,170 +394,138 @@
             list.innerHTML = '';
             
             projectFiles.forEach(file => {
-                const isSpecial = SPECIAL_FILES.includes(file.name.toLowerCase());
+                const isConfig = file.name.toLowerCase() === 'config.json';
+                const is404 = file.name.toLowerCase() === '404.html';
                 const li = document.createElement('li');
-                li.className = `flex flex-col px-3 py-2 rounded-lg text-sm cursor-pointer transition ${currentEditingFile?.id === file.id ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-white hover:shadow-sm'}`;
+                li.className = `flex items-center justify-between px-3 py-2 rounded-lg text-sm cursor-pointer transition ${currentEditingFile?.id === file.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-gray-600 hover:bg-white hover:shadow-sm'}`;
                 
                 li.innerHTML = `
-                    <div class="flex items-center justify-between w-full">
-                        <div class="flex items-center flex-1 overflow-hidden" onclick="editFile('${file.id}')">
-                            <i class="fas ${file.name.toLowerCase() === 'config.json' ? 'fa-cog text-amber-400' : (isSpecial ? 'fa-star text-amber-400' : 'fa-file-code opacity-50')} mr-2"></i>
-                            <span class="truncate">${file.name}</span>
-                        </div>
-                        <button onclick="deleteFile('${file.id}')" class="${currentEditingFile?.id === file.id ? 'text-blue-200' : 'text-gray-300'} hover:text-red-500 transition ml-2">
-                            <i class="fas fa-times"></i>
-                        </button>
+                    <div class="flex items-center flex-1 truncate" onclick="editFile('${file.id}')">
+                        <i class="fas ${isConfig ? 'fa-cog text-amber-400' : (is404 ? 'fa-ghost text-orange-400' : 'fa-file-code opacity-40')} mr-2"></i>
+                        <span class="truncate">${file.name}</span>
                     </div>
+                    <button onclick="deleteFile('${file.id}')" class="ml-2 ${currentEditingFile?.id === file.id ? 'text-blue-200' : 'text-gray-300'} hover:text-red-500">
+                        <i class="fas fa-times"></i>
+                    </button>
                 `;
                 list.appendChild(li);
             });
             renderRecommended();
         }
 
-        function addNewFile() {
-            document.getElementById('fileCreationModal').classList.remove('hidden');
-            document.getElementById('newFileNameInput').focus();
+        function renderRecommended() {
+            const container = document.getElementById('recommendedFiles');
+            container.innerHTML = '';
+            const hasConfig = projectFiles.some(f => f.name.toLowerCase() === 'config.json');
+            const has404 = projectFiles.some(f => f.name.toLowerCase() === '404.html');
+
+            if (!hasConfig) {
+                const d = createRecItem('config.json', 'fa-cog', 'blue', handleAddConfig);
+                container.appendChild(d);
+            }
+            if (!has404) {
+                const d = createRecItem('404.html', 'fa-ghost', 'orange', handleAdd404);
+                container.appendChild(d);
+            }
         }
 
-        function closeFileCreationModal() {
-            document.getElementById('fileCreationModal').classList.add('hidden');
-            document.getElementById('newFileNameInput').value = '';
+        function createRecItem(name, icon, color, action) {
+            const div = document.createElement('div');
+            div.onclick = action;
+            div.className = "p-3 bg-white border border-gray-100 rounded-xl cursor-pointer hover:shadow-md transition flex items-center space-x-3";
+            div.innerHTML = `<div class="w-8 h-8 bg-${color}-50 text-${color}-600 rounded flex items-center justify-center text-xs"><i class="fas ${icon}"></i></div><span class="text-sm font-bold text-gray-900">${name}</span>`;
+            return div;
         }
 
-        async function confirmFileCreation() {
-            const filename = document.getElementById('newFileNameInput').value;
-            if (filename) {
-                const { data, error } = await supabaseClient
-                    .from('project_files')
-                    .insert([{ project_id: currentProject.id, name: filename, content: '' }])
-                    .select()
-                    .single();
-                
-                if (!error) {
-                    projectFiles.push(data);
-                    renderFileList();
-                    editFile(data.id);
-                    closeFileCreationModal();
-                } else {
-                    showError("Error", "File already exists or invalid name.");
-                }
+        async function handleAddConfig() {
+            const defaultConfig = { password: "", maintenance: false, globalCSS: "" };
+            const { data, error } = await supabaseClient.from('project_files').insert([{ 
+                project_id: currentProject.id, 
+                name: 'config.json', 
+                content: JSON.stringify(defaultConfig, null, 2) 
+            }]).select().single();
+            if (!error) {
+                projectFiles.push(data);
+                renderFileList();
+                editFile(data.id);
+            }
+        }
+
+        async function handleAdd404() {
+            const content = `<!DOCTYPE html>\n<html>\n<head><title>404 Not Found</title></head>\n<body style="font-family:sans-serif; text-align:center; padding-top:100px;"><h1>404</h1><p>Page Not Found</p><a href="index.html">Go Home</a></body>\n</html>`;
+            const { data, error } = await supabaseClient.from('project_files').insert([{ project_id: currentProject.id, name: '404.html', content }]).select().single();
+            if (!error) {
+                projectFiles.push(data);
+                renderFileList();
+                editFile(data.id);
             }
         }
 
         function editFile(id) {
             const file = projectFiles.find(f => f.id === id);
             currentEditingFile = file;
-            const editor = document.getElementById('fileEditor');
-            const placeholder = document.getElementById('noFileSelected');
+            document.getElementById('noFileSelected').classList.add('hidden');
             
-            placeholder.classList.add('hidden');
-            editor.classList.remove('hidden');
-            editor.value = file.content;
+            const ext = file.name.split('.').pop();
+            let lang = 'html';
+            if (ext === 'css') lang = 'css';
+            else if (ext === 'js') lang = 'javascript';
+            else if (ext === 'json') lang = 'json';
             
+            if (editorInstance) {
+                monaco.editor.setModelLanguage(editorInstance.getModel(), lang);
+                editorInstance.setValue(file.content);
+            }
+
+            if (file.name.toLowerCase() === 'config.json') document.getElementById('configHelpModal').classList.remove('hidden');
+            if (file.name.toLowerCase() === '404.html') document.getElementById('custom404HelpModal').classList.remove('hidden');
+
             renderFileList();
+            switchEditorTab('code');
         }
 
-        document.getElementById('fileEditor').addEventListener('input', (e) => {
-            if (currentEditingFile) {
-                currentEditingFile.content = e.target.value;
-                document.getElementById('editorStatus').innerText = "Unsaved draft changes...";
-                
-                clearTimeout(saveTimeout);
-                saveTimeout = setTimeout(async () => {
-                    document.getElementById('editorStatus').innerText = "Auto-saving draft...";
-                    await supabaseClient
-                        .from('project_files')
-                        .update({ content: currentEditingFile.content, updated_at: new Date() })
-                        .eq('id', currentEditingFile.id);
-                    document.getElementById('editorStatus').innerText = "Draft changes saved locally";
-                }, 1000);
-            }
-        });
-
-        async function handleFileUpload(event) {
-            const files = event.target.files;
-            for (let file of files) {
-                const reader = new FileReader();
-                reader.onload = async (e) => {
-                    const { data, error } = await supabaseClient
-                        .from('project_files')
-                        .upsert([{ 
-                            project_id: currentProject.id, 
-                            name: file.name, 
-                            content: e.target.result 
-                        }], { onConflict: 'project_id, name' })
-                        .select()
-                        .single();
-                    
-                    if (!error) {
-                        const existingIdx = projectFiles.findIndex(f => f.name === file.name);
-                        if (existingIdx > -1) projectFiles[existingIdx] = data;
-                        else projectFiles.push(data);
-                        renderFileList();
-                        if (files.length === 1) editFile(data.id);
-                    }
-                };
-                reader.readAsText(file);
-            }
-        }
-
-        function deleteFile(id) {
-            if (projectFiles.length <= 1) return;
-            const modal = document.getElementById('deleteConfirmModal');
-            document.getElementById('deleteConfirmMsg').innerText = "Delete this file? You'll need to recreate it manually or via recommendations.";
-            modal.classList.remove('hidden');
-            
-            document.getElementById('finalDeleteBtn').onclick = async () => {
-                await supabaseClient.from('project_files').delete().eq('id', id);
-                projectFiles = projectFiles.filter(f => f.id !== id);
-                if (currentEditingFile?.id === id) {
-                    currentEditingFile = null;
-                    document.getElementById('fileEditor').classList.add('hidden');
-                    document.getElementById('noFileSelected').classList.remove('hidden');
-                }
-                closeDeleteModal();
-                renderFileList();
-            };
+        function triggerAutoSave() {
+            document.getElementById('editorStatus').innerText = "Unsaved draft...";
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(async () => {
+                document.getElementById('editorStatus').innerText = "Saving...";
+                await supabaseClient.from('project_files').update({ content: currentEditingFile.content }).eq('id', currentEditingFile.id);
+                document.getElementById('editorStatus').innerText = "Changes saved";
+            }, 1000);
         }
 
         async function deploySiteAction() {
-            const btn = event.currentTarget;
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-circle-notch animate-spin mr-2"></i> Deploying...';
-            btn.disabled = true;
-
-            const { error } = await supabaseClient
-                .from('projects')
-                .update({ status: 'deployed' })
-                .eq('id', currentProject.id);
-
+            const { error } = await supabaseClient.from('projects').update({ status: 'deployed' }).eq('id', currentProject.id);
             if (!error) {
                 currentProject.status = 'deployed';
-                const statusLabel = document.getElementById('editorSubStatus');
-                statusLabel.innerText = "Live Deployment";
-                statusLabel.classList.replace('text-orange-500', 'text-green-500');
-
-                document.getElementById('successSiteUrl').innerText = `https://litestack.pages.dev/preview?site=${currentProject.name}&page=index.html`;
-                document.getElementById('deploySuccessModal').classList.remove('hidden');
-                
-                btn.innerHTML = '<i class="fas fa-check mr-2"></i> Success';
-                btn.classList.replace('bg-blue-600', 'bg-green-600');
-                setTimeout(() => {
-                    btn.innerHTML = originalText;
-                    btn.classList.replace('bg-green-600', 'bg-blue-600');
-                    btn.disabled = false;
-                }, 2000);
-            } else {
-                showError("Deployment Failed", error.message);
-                btn.innerHTML = originalText;
-                btn.disabled = false;
+                openEditor(projects.indexOf(currentProject));
+                alert("Site Deployed Successfully!");
             }
         }
 
-        async function handleLogout() {
-            await supabaseClient.auth.signOut();
-            window.location.href = '/';
+        function handleSettingsDelete() {
+            deleteProject(currentProject.id);
         }
+
+        function deleteProject(id) {
+            const modal = document.getElementById('deleteConfirmModal');
+            document.getElementById('deleteConfirmMsg').innerText = "All site files will be permanently erased.";
+            modal.classList.remove('hidden');
+            document.getElementById('finalDeleteBtn').onclick = async () => {
+                await supabaseClient.from('projects').delete().eq('id', id);
+                closeDeleteModal();
+                closeEditor();
+                fetchProjects();
+            };
+        }
+
+        function closeDeleteModal() { document.getElementById('deleteConfirmModal').classList.add('hidden'); }
+        function closeConfigHelp() { document.getElementById('configHelpModal').classList.add('hidden'); }
+        function close404Help() { document.getElementById('custom404HelpModal').classList.add('hidden'); }
+        function closeEditor() { document.getElementById('editorOverlay').classList.add('hidden'); currentEditingFile = null; }
+        function openNewProjectModal() { document.getElementById('modalOverlay').classList.remove('hidden'); }
+        function closeModal() { document.getElementById('modalOverlay').classList.add('hidden'); }
+        function handleLogout() { supabaseClient.auth.signOut().then(() => window.location.href = '/'); }
 
         window.onload = checkSession;
     </script>
