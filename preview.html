@@ -7,11 +7,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style id="liteStackGlobalCSS"></style>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #ffffff; margin: 0; padding: 0; height: 100vh; overflow: hidden; }
-        #passwordOverlay, #restrictionOverlay, #maintenanceOverlay { z-index: 1000; backdrop-filter: blur(8px); }
+        #passwordOverlay, #restrictionOverlay { z-index: 1000; backdrop-filter: blur(8px); }
         .loading-spin { animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     </style>
@@ -25,8 +24,8 @@
         </div>
     </div>
 
-    <div id="passwordOverlay" class="hidden fixed inset-0 bg-white/90 flex items-center justify-center p-6 text-center">
-        <div class="max-w-md w-full">
+    <div id="passwordOverlay" class="hidden fixed inset-0 bg-white/90 flex items-center justify-center p-6">
+        <div class="max-w-md w-full text-center">
             <div class="w-20 h-20 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center text-3xl mx-auto mb-6">
                 <i class="fas fa-lock"></i>
             </div>
@@ -49,16 +48,6 @@
         </div>
     </div>
 
-    <div id="maintenanceOverlay" class="hidden fixed inset-0 bg-white flex items-center justify-center p-6 text-center">
-        <div class="max-w-md">
-            <div class="w-20 h-20 bg-amber-50 text-amber-500 rounded-3xl flex items-center justify-center text-3xl mx-auto mb-6">
-                <i class="fas fa-tools"></i>
-            </div>
-            <h2 class="text-3xl font-black text-gray-900 mb-2">Under Maintenance</h2>
-            <p class="text-gray-500">We're making some improvements. Please check back later.</p>
-        </div>
-    </div>
-
     <iframe id="previewFrame" class="w-full h-full border-none hidden"></iframe>
 
     <script>
@@ -68,14 +57,17 @@
         const pageName = urlParams.get('page') || 'index.html';
 
         let siteConfig = {
+            title: "",
+            description: "",
+            faviconUrl: "",
+            themeColor: "#2563eb",
             password: "",
-            maintenance: false,
             devices: { mobile: true, tablet: true, desktop: true },
             loadingText: "Please wait...",
             showLoader: true,
-            titleSuffix: "",
-            description: "",
-            globalCSS: ""
+            customHeadHtml: "",
+            injectCss: "",
+            injectJs: ""
         };
 
         async function initPreview() {
@@ -105,18 +97,9 @@
                 try {
                     const parsed = JSON.parse(configFile.content);
                     siteConfig = { ...siteConfig, ...parsed };
-                    if (siteConfig.globalCSS) {
-                        document.getElementById('liteStackGlobalCSS').innerHTML = siteConfig.globalCSS;
-                    }
                 } catch (e) {
                     console.error("Config error", e);
                 }
-            }
-
-            if (siteConfig.maintenance) {
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('maintenanceOverlay').classList.remove('hidden');
-                return;
             }
 
             if (!isDeviceAllowed()) {
@@ -139,6 +122,7 @@
             let currentDevice = 'desktop';
             if (width < 768) currentDevice = 'mobile';
             else if (width < 1024) currentDevice = 'tablet';
+            
             return siteConfig.devices[currentDevice] !== false;
         }
 
@@ -188,13 +172,11 @@
         function writeToFrame(content) {
             const frame = document.getElementById('previewFrame');
             const doc = frame.contentDocument || frame.contentWindow.document;
-            doc.open();
-            doc.write(content);
-            doc.close();
 
-            if (siteConfig.titleSuffix) {
-                doc.title = doc.title + siteConfig.titleSuffix;
-            }
+            const enhanced = enhanceHtml(content);
+            doc.open();
+            doc.write(enhanced);
+            doc.close();
 
             doc.addEventListener('click', (e) => {
                 const a = e.target.closest('a');
@@ -208,6 +190,55 @@
                     }
                 }
             });
+        }
+
+        function escapeHtmlAttr(val) {
+            return String(val ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;');
+        }
+
+        function enhanceHtml(rawHtml) {
+            const html = String(rawHtml ?? '');
+            const headBits = [];
+
+            const title = (siteConfig.title || '').trim();
+            const description = (siteConfig.description || '').trim();
+            const themeColor = (siteConfig.themeColor || '').trim();
+            const faviconUrl = (siteConfig.faviconUrl || '').trim();
+
+            if (title) headBits.push(`<title>${escapeHtmlAttr(title)}</title>`);
+            if (description) headBits.push(`<meta name="description" content="${escapeHtmlAttr(description)}">`);
+            if (themeColor) headBits.push(`<meta name="theme-color" content="${escapeHtmlAttr(themeColor)}">`);
+            if (faviconUrl) headBits.push(`<link rel="icon" href="${escapeHtmlAttr(faviconUrl)}">`);
+
+            if ((siteConfig.injectCss || '').trim()) {
+                headBits.push(`<style>\n${siteConfig.injectCss}\n</style>`);
+            }
+
+            if ((siteConfig.customHeadHtml || '').trim()) {
+                headBits.push(`${siteConfig.customHeadHtml}`);
+            }
+
+            const injection = headBits.length ? `\n<!-- LiteStack config injection -->\n${headBits.join('\n')}\n` : '';
+
+            let out = html;
+            if (injection) {
+                if (/<\/head>/i.test(out)) out = out.replace(/<\/head>/i, injection + '</head>');
+                else out = `<!doctype html><html><head>${injection}</head><body>${out}</body></html>`;
+            }
+
+            const injectJs = (siteConfig.injectJs || '').trim();
+            if (injectJs) {
+                const scriptTag = `\n<script>\n${injectJs}\n</scr` + `ipt>\n`;
+                if (/<\/body>/i.test(out)) out = out.replace(/<\/body>/i, scriptTag + '</body>');
+                else out += scriptTag;
+            }
+
+            return out;
         }
 
         initPreview();
