@@ -105,6 +105,18 @@
                     <p class="text-sm font-bold text-gray-900 flex items-center"><i class="fas fa-spinner mr-2 text-blue-600"></i> Loading Experience</p>
                     <p class="text-xs text-gray-500 mt-1 leading-relaxed">Change <code>"loadingText"</code> or set <code>"showLoader": false</code> to remove the wait screen.</p>
                 </div>
+                <div class="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <p class="text-sm font-bold text-gray-900 flex items-center"><i class="fas fa-heading mr-2 text-blue-600"></i> Page Metadata</p>
+                    <p class="text-xs text-gray-500 mt-1 leading-relaxed">Set <code>"title"</code>, <code>"description"</code>, <code>"themeColor"</code>, and <code>"faviconUrl"</code> to control how the site looks in tabs and shares.</p>
+                </div>
+                <div class="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <p class="text-sm font-bold text-gray-900 flex items-center"><i class="fas fa-code mr-2 text-blue-600"></i> Inject CSS / JS</p>
+                    <p class="text-xs text-gray-500 mt-1 leading-relaxed">Use <code>"injectCss"</code> and <code>"injectJs"</code> to inject global styles/scripts into every page.</p>
+                </div>
+                <div class="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <p class="text-sm font-bold text-gray-900 flex items-center"><i class="fas fa-screwdriver-wrench mr-2 text-blue-600"></i> Custom Head HTML</p>
+                    <p class="text-xs text-gray-500 mt-1 leading-relaxed">Use <code>"customHeadHtml"</code> to add arbitrary tags to <code>&lt;head&gt;</code> (analytics, fonts, etc.).</p>
+                </div>
             </div>
             <button onclick="closeConfigHelp()" class="w-full bg-gray-900 text-white py-4 rounded-2xl font-bold hover:bg-black transition">I understand</button>
         </div>
@@ -171,6 +183,61 @@
                                     <i class="fas fa-cog"></i>
                                 </div>
                                 <span class="text-sm font-bold text-gray-900">config.json</span>
+                            </div>
+                        </div>
+                        <div onclick="handleRecommendedFile('style.css')" class="p-3 bg-white border border-gray-100 rounded-xl cursor-pointer hover:shadow-md transition group">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-gray-50 text-gray-700 rounded flex items-center justify-center text-xs group-hover:bg-gray-900 group-hover:text-white transition">
+                                    <i class="fas fa-paint-brush"></i>
+                                </div>
+                                <div class="flex flex-col leading-tight">
+                                    <span class="text-sm font-bold text-gray-900">style.css</span>
+                                    <span class="text-[11px] text-gray-400">Add site styles</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div onclick="handleRecommendedFile('script.js')" class="p-3 bg-white border border-gray-100 rounded-xl cursor-pointer hover:shadow-md transition group">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-gray-50 text-gray-700 rounded flex items-center justify-center text-xs group-hover:bg-gray-900 group-hover:text-white transition">
+                                    <i class="fas fa-code"></i>
+                                </div>
+                                <div class="flex flex-col leading-tight">
+                                    <span class="text-sm font-bold text-gray-900">script.js</span>
+                                    <span class="text-[11px] text-gray-400">Add interactions</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div onclick="handleRecommendedFile('404.html')" class="p-3 bg-white border border-gray-100 rounded-xl cursor-pointer hover:shadow-md transition group">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-gray-50 text-gray-700 rounded flex items-center justify-center text-xs group-hover:bg-gray-900 group-hover:text-white transition">
+                                    <i class="fas fa-triangle-exclamation"></i>
+                                </div>
+                                <div class="flex flex-col leading-tight">
+                                    <span class="text-sm font-bold text-gray-900">404.html</span>
+                                    <span class="text-[11px] text-gray-400">Custom not found page</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div onclick="handleRecommendedFile('robots.txt')" class="p-3 bg-white border border-gray-100 rounded-xl cursor-pointer hover:shadow-md transition group">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-gray-50 text-gray-700 rounded flex items-center justify-center text-xs group-hover:bg-gray-900 group-hover:text-white transition">
+                                    <i class="fas fa-robot"></i>
+                                </div>
+                                <div class="flex flex-col leading-tight">
+                                    <span class="text-sm font-bold text-gray-900">robots.txt</span>
+                                    <span class="text-[11px] text-gray-400">Search crawler rules</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div onclick="handleRecommendedFile('_worker.js')" class="p-3 bg-white border border-gray-100 rounded-xl cursor-pointer hover:shadow-md transition group">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-gray-50 text-gray-700 rounded flex items-center justify-center text-xs group-hover:bg-gray-900 group-hover:text-white transition">
+                                    <i class="fas fa-bolt"></i>
+                                </div>
+                                <div class="flex flex-col leading-tight">
+                                    <span class="text-sm font-bold text-gray-900">_worker.js</span>
+                                    <span class="text-[11px] text-gray-400">Edge logic & routing</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -244,8 +311,9 @@
 
         let monacoEditor = null;
         let monacoDisposer = null;
+        let inFlightSavePromise = null;
         let editorSettings = {
-            theme: 'vs-light',
+            theme: 'vs-dark',
             fontSize: 13,
             wordWrap: 'on',
             autoSaveDelay: 1000
@@ -336,20 +404,62 @@
             return 'plaintext';
         }
 
+        async function saveFileNow(fileId, content) {
+            if (!fileId) return;
+            document.getElementById('editorStatus').innerText = "Saving draft...";
+            const { error } = await supabaseClient
+                .from('project_files')
+                .update({ content, updated_at: new Date() })
+                .eq('id', fileId);
+            if (error) {
+                document.getElementById('editorStatus').innerText = "Save failed";
+                throw error;
+            }
+            document.getElementById('editorStatus').innerText = "Draft saved";
+        }
+
         function scheduleAutosave() {
             if (!currentEditingFile) return;
             document.getElementById('editorStatus').innerText = "Unsaved draft changes...";
 
+            const fileId = currentEditingFile.id;
+            const content = currentEditingFile.content ?? '';
+
             clearTimeout(saveTimeout);
-            saveTimeout = setTimeout(async () => {
-                if (!currentEditingFile) return;
-                document.getElementById('editorStatus').innerText = "Auto-saving draft...";
-                await supabaseClient
-                    .from('project_files')
-                    .update({ content: currentEditingFile.content, updated_at: new Date() })
-                    .eq('id', currentEditingFile.id);
-                document.getElementById('editorStatus').innerText = "Draft changes saved locally";
+            saveTimeout = setTimeout(() => {
+                inFlightSavePromise = saveFileNow(fileId, content).catch((err) => {
+                    console.error('Autosave failed', err);
+                });
             }, editorSettings.autoSaveDelay ?? 1000);
+        }
+
+        async function flushPendingDraftSave() {
+            // Pull latest content from Monaco right before save/deploy.
+            if (currentEditingFile && monacoEditor) {
+                try {
+                    currentEditingFile.content = monacoEditor.getValue();
+                } catch (e) {
+                    console.error('Failed reading Monaco value', e);
+                }
+            }
+
+            if (!currentEditingFile) return;
+
+            if (saveTimeout) {
+                clearTimeout(saveTimeout);
+                saveTimeout = null;
+                inFlightSavePromise = saveFileNow(currentEditingFile.id, currentEditingFile.content ?? '').catch((err) => {
+                    console.error('Flush save failed', err);
+                });
+            }
+
+            if (inFlightSavePromise) {
+                try {
+                    await inFlightSavePromise;
+                } finally {
+                    inFlightSavePromise = null;
+                }
+            }
         }
 
         function initMonacoIfNeeded(callback) {
@@ -385,7 +495,23 @@
                         fontSize: editorSettings.fontSize ?? 13,
                         wordWrap: editorSettings.wordWrap || 'on',
                         automaticLayout: true,
-                        minimap: { enabled: false }
+                        minimap: { enabled: true },
+                        padding: { top: 12, bottom: 12 },
+                        scrollBeyondLastLine: false,
+                        smoothScrolling: true,
+                        cursorSmoothCaretAnimation: 'on',
+                        cursorBlinking: 'smooth',
+                        renderWhitespace: 'selection',
+                        renderControlCharacters: true,
+                        bracketPairColorization: { enabled: true },
+                        guides: { bracketPairs: true, indentation: true },
+                        stickyScroll: { enabled: true },
+                        fontLigatures: true,
+                        tabSize: 2,
+                        insertSpaces: true,
+                        detectIndentation: true,
+                        formatOnPaste: true,
+                        formatOnType: true
                     });
 
                     if (monacoDisposer) monacoDisposer.dispose();
@@ -504,10 +630,17 @@
             const configExists = projectFiles.find(f => f.name.toLowerCase() === 'config.json');
             if (!configExists) {
                 const defaultConfig = {
+                    title: "",
+                    description: "",
+                    faviconUrl: "",
+                    themeColor: "#2563eb",
                     password: "",
                     devices: { mobile: true, tablet: true, desktop: true },
                     loadingText: "Please wait...",
-                    showLoader: true
+                    showLoader: true,
+                    customHeadHtml: "",
+                    injectCss: "",
+                    injectJs: ""
                 };
                 const { data, error } = await supabaseClient
                     .from('project_files')
@@ -528,6 +661,39 @@
                 editFile(configExists.id);
             }
             openConfigHelp();
+        }
+
+        async function handleRecommendedFile(filename) {
+            if (!currentProject) return;
+            const exists = projectFiles.find(f => f.name.toLowerCase() === filename.toLowerCase());
+            if (exists) {
+                editFile(exists.id);
+                return;
+            }
+
+            const starterContentByName = {
+                'style.css': `:root { color-scheme: light; }\n\nbody {\n  margin: 0;\n  font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;\n}\n`,
+                'script.js': `console.log('LiteStack: script loaded');\n`,
+                '404.html': `<!doctype html>\n<html>\n<head>\n  <meta charset="utf-8" />\n  <meta name="viewport" content="width=device-width, initial-scale=1" />\n  <title>Not Found</title>\n  <style>body{font-family:system-ui;margin:0;display:grid;place-items:center;height:100vh;background:#f9fafb;color:#111}a{color:#2563eb}</style>\n</head>\n<body>\n  <div style="text-align:center;padding:24px">\n    <h1 style="margin:0 0 8px;font-size:28px">404</h1>\n    <p style="margin:0 0 16px;color:#6b7280">This page doesn’t exist.</p>\n    <a href="index.html">Go home</a>\n  </div>\n</body>\n</html>\n`,
+                'robots.txt': `User-agent: *\nAllow: /\n`,
+                '_worker.js': `export default {\n  async fetch(request, env, ctx) {\n    return fetch(request);\n  }\n};\n`
+            };
+
+            const content = starterContentByName[filename] ?? '';
+            const { data, error } = await supabaseClient
+                .from('project_files')
+                .insert([{ project_id: currentProject.id, name: filename, content }])
+                .select()
+                .single();
+
+            if (error) {
+                showError("Couldn't create file", error.message);
+                return;
+            }
+
+            projectFiles.push(data);
+            renderFileList();
+            editFile(data.id);
         }
 
         function showError(title, msg) {
@@ -760,6 +926,15 @@
             const originalText = btn.innerHTML;
             btn.innerHTML = '<i class="fas fa-circle-notch animate-spin mr-2"></i> Deploying...';
             btn.disabled = true;
+
+            try {
+                await flushPendingDraftSave();
+            } catch (e) {
+                showError("Save Required", "We couldn't save your latest draft changes. Please try again.");
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                return;
+            }
 
             const { error } = await supabaseClient
                 .from('projects')
