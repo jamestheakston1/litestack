@@ -7,123 +7,183 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #ffffff; margin: 0; padding: 0; height: 100vh; overflow: hidden; }
+        #passwordOverlay, #restrictionOverlay { z-index: 1000; backdrop-filter: blur(8px); }
+        .loading-spin { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    </style>
 </head>
-<body class="bg-white overflow-hidden h-screen flex flex-col">
+<body>
 
-    <div class="flex-1 relative bg-white">
-        <iframe id="previewFrame" class="w-full h-full border-none" src="about:blank"></iframe>
-        <div id="loading" class="absolute inset-0 bg-white flex flex-col items-center justify-center z-20 transition-opacity duration-300">
-            <i class="fas fa-circle-notch fa-spin text-blue-600 text-3xl mb-4"></i>
-            <p class="text-sm font-medium text-gray-500">Please wait...</p>
+    <div id="loading" class="fixed inset-0 bg-white flex flex-col items-center justify-center z-[900] transition-opacity duration-500">
+        <div class="flex flex-col items-center">
+            <i class="fas fa-circle-notch loading-spin text-blue-600 text-3xl mb-4"></i>
+            <p id="loadingText" class="text-sm font-bold text-gray-400 uppercase tracking-widest">Please wait...</p>
         </div>
     </div>
 
-    <script>
-        const supabaseClient = supabase.createClient(
-            'https://sykhfbuvevixbxfrbysa.supabase.co', 
-            'sb_publishable_mocH3Iz2GQ_FQaB0d8LbEQ_szHXLp93'
-        );
+    <div id="passwordOverlay" class="hidden fixed inset-0 bg-white/90 flex items-center justify-center p-6">
+        <div class="max-w-md w-full text-center">
+            <div class="w-20 h-20 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center text-3xl mx-auto mb-6">
+                <i class="fas fa-lock"></i>
+            </div>
+            <h2 class="text-3xl font-black text-gray-900 mb-2">Protected Site</h2>
+            <p class="text-gray-500 mb-8">This site requires a password to view.</p>
+            <div class="space-y-4">
+                <input type="password" id="sitePassword" placeholder="Enter password" class="w-full px-6 py-4 bg-gray-100 rounded-2xl border-none focus:ring-2 focus:ring-blue-600 outline-none text-center font-bold">
+                <button onclick="checkPassword()" class="w-full py-4 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 transition shadow-xl shadow-blue-100">Unlock Site</button>
+            </div>
+        </div>
+    </div>
 
+    <div id="restrictionOverlay" class="hidden fixed inset-0 bg-white flex items-center justify-center p-6 text-center">
+        <div class="max-w-md">
+            <div class="w-20 h-20 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center text-3xl mx-auto mb-6">
+                <i class="fas fa-mobile-slash"></i>
+            </div>
+            <h2 class="text-3xl font-black text-gray-900 mb-2">Device Restricted</h2>
+            <p class="text-gray-500">The owner has restricted access to this site on your current device type.</p>
+        </div>
+    </div>
+
+    <iframe id="previewFrame" class="w-full h-full border-none hidden"></iframe>
+
+    <script>
+        const supabaseClient = supabase.createClient('https://sykhfbuvevixbxfrbysa.supabase.co', 'sb_publishable_mocH3Iz2GQ_FQaB0d8LbEQ_szHXLp93');
         const urlParams = new URLSearchParams(window.location.search);
         const siteName = urlParams.get('site');
         const pageName = urlParams.get('page') || 'index.html';
-        const iframe = document.getElementById('previewFrame');
-        const loading = document.getElementById('loading');
 
-        async function loadContent() {
+        let siteConfig = {
+            password: "",
+            devices: { mobile: true, tablet: true, desktop: true },
+            loadingText: "Please wait...",
+            showLoader: true
+        };
+
+        async function initPreview() {
             if (!siteName) {
                 window.location.href = '/errors/nosite.html';
                 return;
             }
 
-            try {
-                const { data: project, error: pError } = await supabaseClient
-                    .from('projects')
-                    .select('id')
-                    .eq('name', siteName)
-                    .single();
+            const { data: project, error: pError } = await supabaseClient
+                .from('projects')
+                .select('id')
+                .eq('name', siteName)
+                .single();
 
-                if (pError || !project) {
-                    window.location.href = '/errors/nosite.html';
-                    return;
+            if (!project) {
+                window.location.href = '/errors/nosite.html';
+                return;
+            }
+
+            const { data: files, error: fError } = await supabaseClient
+                .from('project_files')
+                .select('name, content')
+                .eq('project_id', project.id);
+
+            const configFile = files.find(f => f.name.toLowerCase() === 'config.json');
+            if (configFile) {
+                try {
+                    const parsed = JSON.parse(configFile.content);
+                    siteConfig = { ...siteConfig, ...parsed };
+                } catch (e) {
+                    console.error("Config error", e);
                 }
+            }
 
-                const { data: files, error: fError } = await supabaseClient
-                    .from('project_files')
-                    .select('name, content')
-                    .eq('project_id', project.id);
+            if (!isDeviceAllowed()) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('restrictionOverlay').classList.remove('hidden');
+                return;
+            }
 
-                if (fError || !files || files.length === 0) {
-                    window.location.href = '/errors/default404.html?site=' + siteName;
-                    return;
-                }
+            if (siteConfig.password !== "" && !sessionStorage.getItem(`auth_${siteName}`)) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('passwordOverlay').classList.remove('hidden');
+                return;
+            }
 
-                const requestedFile = files.find(f => f.name.toLowerCase() === pageName.toLowerCase());
+            renderPage(files);
+        }
 
-                if (requestedFile) {
-                    renderToIframe(requestedFile.content);
-                } else {
-                    const custom404 = files.find(f => f.name.toLowerCase() === '404.html');
-                    if (custom404) {
-                        renderToIframe(custom404.content);
-                    } else {
-                        window.location.href = `/errors/default404.html?site=${siteName}`;
-                    }
-                }
-            } catch (err) {
-                console.error(err);
-                window.location.href = '/errors/default404.html';
+        function isDeviceAllowed() {
+            const width = window.innerWidth;
+            let currentDevice = 'desktop';
+            if (width < 768) currentDevice = 'mobile';
+            else if (width < 1024) currentDevice = 'tablet';
+            
+            return siteConfig.devices[currentDevice] !== false;
+        }
+
+        function checkPassword() {
+            const val = document.getElementById('sitePassword').value;
+            if (val === siteConfig.password) {
+                sessionStorage.setItem(`auth_${siteName}`, "true");
+                document.getElementById('passwordOverlay').classList.add('hidden');
+                initPreview();
+            } else {
+                alert("Incorrect password");
             }
         }
 
-        function renderToIframe(content) {
-            const doc = iframe.contentDocument || iframe.contentWindow.document;
+        function renderPage(files) {
+            const loading = document.getElementById('loading');
+            const loadingText = document.getElementById('loadingText');
+            const frame = document.getElementById('previewFrame');
+
+            if (!siteConfig.showLoader) {
+                loading.style.display = 'none';
+            } else {
+                loadingText.innerText = siteConfig.loadingText;
+            }
+
+            const targetFile = files.find(f => f.name.toLowerCase() === pageName.toLowerCase());
+            
+            if (!targetFile) {
+                const custom404 = files.find(f => f.name.toLowerCase() === '404.html');
+                if (custom404) {
+                    writeToFrame(custom404.content);
+                } else {
+                    window.location.href = `/errors/default404.html?site=${siteName}`;
+                }
+                return;
+            }
+
+            writeToFrame(targetFile.content);
+            
+            setTimeout(() => {
+                loading.style.opacity = '0';
+                frame.classList.remove('hidden');
+                setTimeout(() => loading.style.display = 'none', 500);
+            }, 500);
+        }
+
+        function writeToFrame(content) {
+            const frame = document.getElementById('previewFrame');
+            const doc = frame.contentDocument || frame.contentWindow.document;
             doc.open();
             doc.write(content);
             doc.close();
 
-            const userTitle = doc.querySelector('title');
-            if (userTitle && userTitle.innerText) {
-                document.title = userTitle.innerText;
-            } else {
-                document.title = `${siteName} | LiteStack`;
-            }
-
-            loading.style.opacity = '0';
-            setTimeout(() => {
-                loading.style.display = 'none';
-            }, 300);
-
             doc.addEventListener('click', (e) => {
-                const link = e.target.closest('a');
-                if (link) {
-                    const href = link.getAttribute('href');
-                    if (!href) return;
-
-                    // Determine if link is external
-                    const isExternal = href.startsWith('http://') || href.startsWith('https://') || href.startsWith('//') || href.startsWith('mailto:');
-
-                    if (isExternal) {
+                const a = e.target.closest('a');
+                if (a && a.getAttribute('href')) {
+                    const href = a.getAttribute('href');
+                    if (!href.startsWith('http') && !href.startsWith('//') && !href.startsWith('#')) {
                         e.preventDefault();
-                        // Open external link in new tab
-                        window.open(href, '_blank');
-                    } else if (!href.startsWith('#')) {
-                        // Internal navigation
-                        e.preventDefault();
-
-                        loading.style.display = 'flex';
-                        loading.style.opacity = '1';
-
-                        const cleanPage = href.split('?')[0].split('#')[0];
-                        const currentParams = new URLSearchParams(window.location.search);
-                        currentParams.set('page', cleanPage);
-                        window.location.href = window.location.pathname + '?' + currentParams.toString();
+                        const newParams = new URLSearchParams(window.location.search);
+                        newParams.set('page', href);
+                        window.location.href = window.location.pathname + '?' + newParams.toString();
                     }
                 }
-            }, true);
+            });
         }
 
-        loadContent();
+        initPreview();
     </script>
 </body>
 </html>
