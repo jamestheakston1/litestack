@@ -14,6 +14,7 @@
         .modal-overlay { background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(4px); transition: all 0.3s ease; }
         #monacoEditor { width: 100%; height: 100%; }
         .drag-ghost { opacity: 0.6; }
+        .recommended-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.0/min/vs/loader.min.js"></script>
 </head>
@@ -149,6 +150,37 @@
         </div>
     </div>
 
+    <div id="confirmModal" class="fixed inset-0 modal-overlay z-[350] hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-8 text-center">
+            <div class="w-16 h-16 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-circle-question text-2xl"></i>
+            </div>
+            <h3 id="confirmTitle" class="text-xl font-bold text-gray-900 mb-2">Confirm</h3>
+            <p id="confirmMessage" class="text-gray-500 mb-6 text-sm"></p>
+            <div class="grid grid-cols-2 gap-3">
+                <button id="confirmCancelBtn" class="w-full border border-gray-200 py-3 rounded-xl font-bold hover:bg-gray-50 transition">Cancel</button>
+                <button id="confirmOkBtn" class="w-full bg-gray-900 text-white py-3 rounded-xl font-bold hover:bg-black transition">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="promptModal" class="fixed inset-0 modal-overlay z-[360] hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-8">
+            <div class="flex items-start justify-between mb-4">
+                <div>
+                    <h3 id="promptTitle" class="text-xl font-bold text-gray-900">New File</h3>
+                    <p id="promptMessage" class="text-gray-500 text-sm mt-1"></p>
+                </div>
+                <button onclick="hidePrompt(false)" class="text-gray-400 hover:text-black transition"><i class="fas fa-times"></i></button>
+            </div>
+            <input id="promptInput" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-mono outline-none focus:border-blue-500" placeholder="e.g. style.css">
+            <div class="grid grid-cols-2 gap-3 mt-5">
+                <button onclick="hidePrompt(false)" class="w-full border border-gray-200 py-3 rounded-xl font-bold hover:bg-gray-50 transition">Cancel</button>
+                <button id="promptOkBtn" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition">Create</button>
+            </div>
+        </div>
+    </div>
+
     <div id="editorOverlay" class="fixed inset-0 bg-white z-[200] hidden flex flex-col">
         <div class="border-b border-gray-100 px-6 py-4 flex items-center justify-between">
             <div class="flex items-center space-x-4">
@@ -167,7 +199,7 @@
                     <i class="fas fa-upload mr-2"></i> Upload
                 </button>
                 <input type="file" id="fileInput" class="hidden" multiple onchange="handleFileUpload(event)">
-                <button onclick="toggleProjectSettings()" class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-bold hover:bg-gray-50 transition">
+                <button onclick="openSettingsPage()" class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-bold hover:bg-gray-50 transition">
                     <i class="fas fa-sliders-h mr-2"></i> Settings
                 </button>
                 <button onclick="deploySiteAction()" class="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-100">Deploy</button>
@@ -177,70 +209,51 @@
             <div class="w-72 border-r border-gray-100 bg-gray-50 flex flex-col overflow-hidden">
                 <div class="p-4 flex-1 overflow-y-auto">
                     <h3 class="text-xs font-bold uppercase text-gray-400 mb-4 tracking-widest">Recommended</h3>
-                    <div id="recommendedFiles" class="mb-8 space-y-2">
-                        <div onclick="handleConfigRecommended()" class="p-3 bg-white border border-blue-100 rounded-xl cursor-pointer hover:shadow-md transition group">
-                            <div class="flex items-center space-x-3">
-                                <div class="w-8 h-8 bg-blue-50 text-blue-600 rounded flex items-center justify-center text-xs group-hover:bg-blue-600 group-hover:text-white transition">
+                    <div id="recommendedFiles" class="mb-8 recommended-grid">
+                        <button onclick="handleConfigRecommended()" class="p-3 bg-white border border-blue-100 rounded-2xl cursor-pointer hover:shadow-md transition group text-left">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-xs group-hover:bg-blue-600 group-hover:text-white transition">
                                     <i class="fas fa-cog"></i>
                                 </div>
-                                <span class="text-sm font-bold text-gray-900">config.json</span>
+                                <div class="min-w-0">
+                                    <div class="text-sm font-extrabold text-gray-900 truncate">config.json</div>
+                                    <div class="text-[11px] text-gray-400 truncate">Website settings</div>
+                                </div>
                             </div>
-                        </div>
-                        <div onclick="handleRecommendedFile('style.css')" class="p-3 bg-white border border-gray-100 rounded-xl cursor-pointer hover:shadow-md transition group">
-                            <div class="flex items-center space-x-3">
-                                <div class="w-8 h-8 bg-gray-50 text-gray-700 rounded flex items-center justify-center text-xs group-hover:bg-gray-900 group-hover:text-white transition">
+                        </button>
+                        <button onclick="handleRecommendedFile('style.css')" class="p-3 bg-white border border-gray-100 rounded-2xl cursor-pointer hover:shadow-md transition group text-left">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 bg-gray-50 text-gray-700 rounded-xl flex items-center justify-center text-xs group-hover:bg-gray-900 group-hover:text-white transition">
                                     <i class="fas fa-paint-brush"></i>
                                 </div>
-                                <div class="flex flex-col leading-tight">
-                                    <span class="text-sm font-bold text-gray-900">style.css</span>
-                                    <span class="text-[11px] text-gray-400">Add site styles</span>
+                                <div class="min-w-0">
+                                    <div class="text-sm font-extrabold text-gray-900 truncate">style.css</div>
+                                    <div class="text-[11px] text-gray-400 truncate">Site styles</div>
                                 </div>
                             </div>
-                        </div>
-                        <div onclick="handleRecommendedFile('script.js')" class="p-3 bg-white border border-gray-100 rounded-xl cursor-pointer hover:shadow-md transition group">
-                            <div class="flex items-center space-x-3">
-                                <div class="w-8 h-8 bg-gray-50 text-gray-700 rounded flex items-center justify-center text-xs group-hover:bg-gray-900 group-hover:text-white transition">
+                        </button>
+                        <button onclick="handleRecommendedFile('script.js')" class="p-3 bg-white border border-gray-100 rounded-2xl cursor-pointer hover:shadow-md transition group text-left">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 bg-gray-50 text-gray-700 rounded-xl flex items-center justify-center text-xs group-hover:bg-gray-900 group-hover:text-white transition">
                                     <i class="fas fa-code"></i>
                                 </div>
-                                <div class="flex flex-col leading-tight">
-                                    <span class="text-sm font-bold text-gray-900">script.js</span>
-                                    <span class="text-[11px] text-gray-400">Add interactions</span>
+                                <div class="min-w-0">
+                                    <div class="text-sm font-extrabold text-gray-900 truncate">script.js</div>
+                                    <div class="text-[11px] text-gray-400 truncate">Interactions</div>
                                 </div>
                             </div>
-                        </div>
-                        <div onclick="handleRecommendedFile('404.html')" class="p-3 bg-white border border-gray-100 rounded-xl cursor-pointer hover:shadow-md transition group">
-                            <div class="flex items-center space-x-3">
-                                <div class="w-8 h-8 bg-gray-50 text-gray-700 rounded flex items-center justify-center text-xs group-hover:bg-gray-900 group-hover:text-white transition">
+                        </button>
+                        <button onclick="handleRecommendedFile('404.html')" class="p-3 bg-white border border-gray-100 rounded-2xl cursor-pointer hover:shadow-md transition group text-left">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 bg-gray-50 text-gray-700 rounded-xl flex items-center justify-center text-xs group-hover:bg-gray-900 group-hover:text-white transition">
                                     <i class="fas fa-triangle-exclamation"></i>
                                 </div>
-                                <div class="flex flex-col leading-tight">
-                                    <span class="text-sm font-bold text-gray-900">404.html</span>
-                                    <span class="text-[11px] text-gray-400">Custom not found page</span>
+                                <div class="min-w-0">
+                                    <div class="text-sm font-extrabold text-gray-900 truncate">404.html</div>
+                                    <div class="text-[11px] text-gray-400 truncate">Not found page</div>
                                 </div>
                             </div>
-                        </div>
-                        <div onclick="handleRecommendedFile('robots.txt')" class="p-3 bg-white border border-gray-100 rounded-xl cursor-pointer hover:shadow-md transition group">
-                            <div class="flex items-center space-x-3">
-                                <div class="w-8 h-8 bg-gray-50 text-gray-700 rounded flex items-center justify-center text-xs group-hover:bg-gray-900 group-hover:text-white transition">
-                                    <i class="fas fa-robot"></i>
-                                </div>
-                                <div class="flex flex-col leading-tight">
-                                    <span class="text-sm font-bold text-gray-900">robots.txt</span>
-                                    <span class="text-[11px] text-gray-400">Search crawler rules</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div onclick="handleRecommendedFile('_worker.js')" class="p-3 bg-white border border-gray-100 rounded-xl cursor-pointer hover:shadow-md transition group">
-                            <div class="flex items-center space-x-3">
-                                <div class="w-8 h-8 bg-gray-50 text-gray-700 rounded flex items-center justify-center text-xs group-hover:bg-gray-900 group-hover:text-white transition">
-                                    <i class="fas fa-bolt"></i>
-                                </div>
-                                <div class="flex flex-col leading-tight">
-                                    <span class="text-sm font-bold text-gray-900">_worker.js</span>
-                                    <span class="text-[11px] text-gray-400">Edge logic & routing</span>
-                                </div>
-                            </div>
-                        </div>
+                        </button>
                     </div>
                     
                     <h3 class="text-xs font-bold uppercase text-gray-400 mb-4 tracking-widest">Site Files</h3>
@@ -251,6 +264,115 @@
                 <div id="noFileSelected" class="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
                     <i class="fas fa-file-code text-4xl mb-4 opacity-20"></i>
                     <p>Select a file to edit or create a new one.</p>
+                </div>
+                <div id="projectSettingsPage" class="hidden absolute inset-0 bg-white">
+                    <div class="h-full flex flex-col">
+                        <div class="border-b border-gray-100 px-6 py-4 flex items-center justify-between">
+                            <div>
+                                <div class="text-xl font-black text-gray-900">Project Settings</div>
+                                <div class="text-xs text-gray-400">Customize the editor and project workflow.</div>
+                            </div>
+                            <button onclick="closeSettingsPage()" class="text-gray-400 hover:text-black transition">
+                                <i class="fas fa-times text-lg"></i>
+                            </button>
+                        </div>
+                        <div class="flex-1 overflow-y-auto p-6 bg-gray-50">
+                            <div class="max-w-3xl space-y-6">
+                                <div class="bg-white border border-gray-100 rounded-3xl p-6">
+                                    <div class="text-sm font-black text-gray-900 mb-1">Website settings</div>
+                                    <div id="settingsMovedText" class="text-sm text-gray-500 mb-4">Settings has moved. Try clicking config.json under your recommended files section.</div>
+                                    <button onclick="openConfigFromSettings()" class="px-4 py-2 rounded-xl bg-blue-600 text-white font-extrabold hover:bg-blue-700 transition">
+                                        Open config.json
+                                    </button>
+                                </div>
+
+                                <div class="bg-white border border-gray-100 rounded-3xl p-6">
+                                    <div class="text-sm font-black text-gray-900 mb-4">Editor</div>
+                                    <div class="grid sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-xs font-bold uppercase text-gray-400 mb-1 tracking-wider">Theme</label>
+                                            <select id="settingThemePage" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
+                                                <option value="vs-light">Light</option>
+                                                <option value="vs-dark">Dark</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold uppercase text-gray-400 mb-1 tracking-wider">Font Size</label>
+                                            <input id="settingFontSizePage" type="number" min="10" max="24" step="1" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value="13">
+                                        </div>
+                                        <div class="flex items-center justify-between sm:col-span-2">
+                                            <div>
+                                                <div class="text-xs font-bold uppercase tracking-wider text-gray-400">Word Wrap</div>
+                                                <div class="text-[11px] text-gray-400">Wrap long lines in the editor</div>
+                                            </div>
+                                            <label class="flex items-center space-x-2">
+                                                <input id="settingWordWrapPage" type="checkbox" class="rounded border-gray-300">
+                                                <span class="text-xs text-gray-600">Enabled</span>
+                                            </label>
+                                        </div>
+                                        <div class="sm:col-span-2">
+                                            <label class="block text-xs font-bold uppercase text-gray-400 mb-1 tracking-wider">Auto-save Delay (ms)</label>
+                                            <input id="settingAutoSaveDelayPage" type="number" min="300" max="5000" step="100" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value="1000">
+                                            <div class="text-[11px] text-gray-400 mt-1">Time after typing before drafts are saved locally.</div>
+                                        </div>
+                                    </div>
+                                    <div class="mt-5 flex gap-3">
+                                        <button onclick="saveProjectSettingsFromPage()" class="px-4 py-2 rounded-xl bg-gray-900 text-white font-extrabold hover:bg-black transition">Save</button>
+                                    </div>
+                                </div>
+
+                                <div class="bg-white border border-gray-100 rounded-3xl p-6">
+                                    <div class="text-sm font-black text-gray-900 mb-2">Keyboard shortcuts</div>
+                                    <div class="text-sm text-gray-500 mb-4">Set custom shortcuts for common actions.</div>
+                                    <div class="grid sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-xs font-bold uppercase text-gray-400 mb-1 tracking-wider">Deploy</label>
+                                            <input id="shortcutDeploy" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono" placeholder="Ctrl+Enter">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold uppercase text-gray-400 mb-1 tracking-wider">New File</label>
+                                            <input id="shortcutNewFile" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono" placeholder="Ctrl+N">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold uppercase text-gray-400 mb-1 tracking-wider">Open Settings</label>
+                                            <input id="shortcutSettings" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono" placeholder="Ctrl+,">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold uppercase text-gray-400 mb-1 tracking-wider">Open config.json</label>
+                                            <input id="shortcutConfig" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono" placeholder="Ctrl+Shift+C">
+                                        </div>
+                                    </div>
+                                    <div class="mt-5 flex gap-3">
+                                        <button onclick="saveShortcutsFromPage()" class="px-4 py-2 rounded-xl bg-blue-600 text-white font-extrabold hover:bg-blue-700 transition">Save shortcuts</button>
+                                        <button onclick="resetShortcutsFromPage()" class="px-4 py-2 rounded-xl border border-gray-200 font-extrabold hover:bg-gray-50 transition">Reset</button>
+                                    </div>
+                                </div>
+
+                                <div class="bg-white border border-gray-100 rounded-3xl p-6">
+                                    <div class="text-sm font-black text-gray-900 mb-2">SEO & verification</div>
+                                    <div class="text-sm text-gray-500 mb-4">These values are stored in <code class="font-mono text-xs">config.json</code>.</div>
+                                    <div id="seoDisabledHint" class="hidden text-sm text-gray-500 mb-4">Add <code class="font-mono text-xs">config.json</code> to enable SEO settings.</div>
+                                    <div id="seoFields" class="grid sm:grid-cols-2 gap-4">
+                                        <div class="sm:col-span-2">
+                                            <label class="block text-xs font-bold uppercase text-gray-400 mb-1 tracking-wider">Meta description</label>
+                                            <input id="seoDescription" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" placeholder="A short description of your website">
+                                        </div>
+                                        <div class="sm:col-span-2">
+                                            <label class="block text-xs font-bold uppercase text-gray-400 mb-1 tracking-wider">Google Search Console verification</label>
+                                            <input id="seoGoogleVerification" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono" placeholder="paste token value">
+                                        </div>
+                                        <div class="sm:col-span-2">
+                                            <label class="block text-xs font-bold uppercase text-gray-400 mb-1 tracking-wider">Extra meta tags (optional)</label>
+                                            <textarea id="seoExtraMeta" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono min-h-[120px]" placeholder='Example:\n<meta name="robots" content="index,follow">\n<meta property="og:title" content="My site">'></textarea>
+                                        </div>
+                                    </div>
+                                    <div class="mt-5 flex gap-3">
+                                        <button onclick="applySeoToConfig()" class="px-4 py-2 rounded-xl bg-gray-900 text-white font-extrabold hover:bg-black transition">Save to config.json draft</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div id="editorTabsShell" class="hidden absolute inset-0 flex flex-col">
                     <div class="border-b border-gray-100 px-4 py-2 flex items-center justify-between bg-white">
@@ -733,7 +855,9 @@
                     showLoader: true,
                     customHeadHtml: "",
                     injectCss: "",
-                    injectJs: ""
+                    injectJs: "",
+                    googleSiteVerification: "",
+                    extraMetaTags: ""
                 };
                 const { data, error } = await supabaseClient
                     .from('project_files')
@@ -760,6 +884,10 @@
 
         async function handleRecommendedFile(filename) {
             if (!currentProject) return;
+            if ((filename || '').toLowerCase() === 'config.json') {
+                showError('config.json is special', 'This is your website settings file. Add it via the Recommended section instead.');
+                return;
+            }
             const exists = projectFiles.find(f => f.name.toLowerCase() === filename.toLowerCase());
             if (exists) {
                 editFile(exists.id);
@@ -802,6 +930,333 @@
         function closeErrorModal() {
             document.getElementById('errorModal').classList.add('hidden');
         }
+
+        let __confirmResolver = null;
+        function showConfirm(title, message, okText = 'Confirm', cancelText = 'Cancel') {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('confirmModal');
+                const titleEl = document.getElementById('confirmTitle');
+                const msgEl = document.getElementById('confirmMessage');
+                const okBtn = document.getElementById('confirmOkBtn');
+                const cancelBtn = document.getElementById('confirmCancelBtn');
+                if (!modal || !okBtn || !cancelBtn) return resolve(false);
+
+                titleEl.innerText = title || 'Confirm';
+                msgEl.innerText = message || '';
+                okBtn.innerText = okText || 'Confirm';
+                cancelBtn.innerText = cancelText || 'Cancel';
+
+                __confirmResolver = (val) => {
+                    modal.classList.add('hidden');
+                    __confirmResolver = null;
+                    resolve(!!val);
+                };
+
+                okBtn.onclick = () => __confirmResolver?.(true);
+                cancelBtn.onclick = () => __confirmResolver?.(false);
+                modal.onclick = (e) => {
+                    if (e.target === modal) __confirmResolver?.(false);
+                };
+
+                modal.classList.remove('hidden');
+            });
+        }
+
+        let __promptResolver = null;
+        function showPrompt(title, message, placeholder = '', okText = 'Create', initialValue = '') {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('promptModal');
+                const titleEl = document.getElementById('promptTitle');
+                const msgEl = document.getElementById('promptMessage');
+                const input = document.getElementById('promptInput');
+                const okBtn = document.getElementById('promptOkBtn');
+                if (!modal || !input || !okBtn) return resolve(null);
+
+                titleEl.innerText = title || 'Input';
+                msgEl.innerText = message || '';
+                input.placeholder = placeholder || '';
+                input.value = initialValue || '';
+                okBtn.innerText = okText || 'OK';
+
+                __promptResolver = (val) => {
+                    modal.classList.add('hidden');
+                    const out = val === null ? null : String(val);
+                    __promptResolver = null;
+                    resolve(out);
+                };
+
+                okBtn.onclick = () => __promptResolver?.(input.value);
+                modal.onclick = (e) => {
+                    if (e.target === modal) __promptResolver?.(null);
+                };
+
+                input.onkeydown = (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        __promptResolver?.(input.value);
+                    }
+                    if (e.key === 'Escape') {
+                        e.preventDefault();
+                        __promptResolver?.(null);
+                    }
+                };
+
+                modal.classList.remove('hidden');
+                setTimeout(() => input.focus(), 0);
+            });
+        }
+
+        function hidePrompt(ok) {
+            if (!__promptResolver) return;
+            const input = document.getElementById('promptInput');
+            __promptResolver(ok ? (input?.value ?? '') : null);
+        }
+
+        function isEditorOverlayOpen() {
+            const overlay = document.getElementById('editorOverlay');
+            return overlay && !overlay.classList.contains('hidden');
+        }
+
+        function isSettingsPageOpen() {
+            const page = document.getElementById('projectSettingsPage');
+            return page && !page.classList.contains('hidden');
+        }
+
+        function openSettingsPage() {
+            if (!isEditorOverlayOpen()) return;
+            document.getElementById('editorTabsShell')?.classList.add('hidden');
+            document.getElementById('noFileSelected')?.classList.add('hidden');
+            document.getElementById('projectSettingsPage')?.classList.remove('hidden');
+
+            // Populate settings UI
+            document.getElementById('settingThemePage').value = editorSettings.theme || 'vs-light';
+            document.getElementById('settingFontSizePage').value = editorSettings.fontSize ?? 13;
+            document.getElementById('settingWordWrapPage').checked = (editorSettings.wordWrap || 'on') === 'on';
+            document.getElementById('settingAutoSaveDelayPage').value = editorSettings.autoSaveDelay ?? 1000;
+
+            const cfg = projectFiles.find(f => (f.name || '').toLowerCase() === 'config.json');
+            const moved = document.getElementById('settingsMovedText');
+            if (moved) {
+                moved.innerText = cfg
+                    ? 'Settings has moved. Try editing your config.json file.'
+                    : 'Settings has moved. Try clicking config.json under your recommended files section.';
+            }
+
+            loadShortcutsIntoPage();
+            loadSeoIntoPage();
+        }
+
+        function closeSettingsPage() {
+            document.getElementById('projectSettingsPage')?.classList.add('hidden');
+            if (currentEditingFile) document.getElementById('editorTabsShell')?.classList.remove('hidden');
+            else document.getElementById('noFileSelected')?.classList.remove('hidden');
+        }
+
+        function saveProjectSettingsFromPage() {
+            const themeSelect = document.getElementById('settingThemePage');
+            const fontSizeInput = document.getElementById('settingFontSizePage');
+            const wordWrapCheckbox = document.getElementById('settingWordWrapPage');
+            const autoSaveInput = document.getElementById('settingAutoSaveDelayPage');
+
+            editorSettings = {
+                theme: themeSelect.value,
+                fontSize: parseInt(fontSizeInput.value, 10) || 13,
+                wordWrap: wordWrapCheckbox.checked ? 'on' : 'off',
+                autoSaveDelay: parseInt(autoSaveInput.value, 10) || 1000
+            };
+
+            persistProjectSettings();
+            applyEditorSettingsToMonaco();
+            document.getElementById('editorStatus').innerText = 'Settings saved';
+        }
+
+        function getShortcutsKey(projectId) {
+            return `litestack_shortcuts_${projectId}`;
+        }
+
+        function defaultShortcuts() {
+            return {
+                deploy: 'Ctrl+Enter',
+                newFile: 'Ctrl+N',
+                settings: 'Ctrl+,',
+                config: 'Ctrl+Shift+C'
+            };
+        }
+
+        function loadShortcuts(projectId) {
+            try {
+                const raw = localStorage.getItem(getShortcutsKey(projectId));
+                if (!raw) return defaultShortcuts();
+                const parsed = JSON.parse(raw);
+                return { ...defaultShortcuts(), ...(parsed || {}) };
+            } catch {
+                return defaultShortcuts();
+            }
+        }
+
+        function saveShortcuts(projectId, shortcuts) {
+            try {
+                localStorage.setItem(getShortcutsKey(projectId), JSON.stringify(shortcuts || defaultShortcuts()));
+            } catch (e) {
+                console.error('Failed to save shortcuts', e);
+            }
+        }
+
+        function loadShortcutsIntoPage() {
+            if (!currentProject) return;
+            const s = loadShortcuts(currentProject.id);
+            document.getElementById('shortcutDeploy').value = s.deploy || '';
+            document.getElementById('shortcutNewFile').value = s.newFile || '';
+            document.getElementById('shortcutSettings').value = s.settings || '';
+            document.getElementById('shortcutConfig').value = s.config || '';
+        }
+
+        function saveShortcutsFromPage() {
+            if (!currentProject) return;
+            const shortcuts = {
+                deploy: (document.getElementById('shortcutDeploy').value || '').trim(),
+                newFile: (document.getElementById('shortcutNewFile').value || '').trim(),
+                settings: (document.getElementById('shortcutSettings').value || '').trim(),
+                config: (document.getElementById('shortcutConfig').value || '').trim()
+            };
+            saveShortcuts(currentProject.id, shortcuts);
+            document.getElementById('editorStatus').innerText = 'Shortcuts saved';
+        }
+
+        function resetShortcutsFromPage() {
+            if (!currentProject) return;
+            saveShortcuts(currentProject.id, defaultShortcuts());
+            loadShortcutsIntoPage();
+            document.getElementById('editorStatus').innerText = 'Shortcuts reset';
+        }
+
+        function findConfigFile() {
+            return projectFiles.find(f => (f.name || '').toLowerCase() === 'config.json') || null;
+        }
+
+        async function openConfigFromSettings() {
+            if (!currentProject) return;
+            const cfg = findConfigFile();
+            if (cfg) {
+                closeSettingsPage();
+                editFile(cfg.id);
+                switchEditorTab('code');
+                return;
+            }
+            // Create through recommended flow (allowed path)
+            await handleConfigRecommended();
+            closeSettingsPage();
+            switchEditorTab('code');
+        }
+
+        function parseConfigJsonFromFile(cfg) {
+            const raw = getDraftForFile(cfg.id);
+            const content = raw !== null ? raw : (cfg.content ?? '');
+            try {
+                return JSON.parse(content || '{}');
+            } catch {
+                return null;
+            }
+        }
+
+        function loadSeoIntoPage() {
+            const cfg = findConfigFile();
+            const hint = document.getElementById('seoDisabledHint');
+            const fields = document.getElementById('seoFields');
+            if (!cfg) {
+                hint?.classList.remove('hidden');
+                fields?.classList.add('hidden');
+                return;
+            }
+
+            hint?.classList.add('hidden');
+            fields?.classList.remove('hidden');
+
+            const parsed = parseConfigJsonFromFile(cfg) || {};
+            document.getElementById('seoDescription').value = parsed.description ?? '';
+            document.getElementById('seoGoogleVerification').value = parsed.googleSiteVerification ?? '';
+            document.getElementById('seoExtraMeta').value = parsed.extraMetaTags ?? '';
+        }
+
+        function applySeoToConfig() {
+            const cfg = findConfigFile();
+            if (!cfg) {
+                showError('config.json required', 'Add config.json from the Recommended section to edit SEO settings.');
+                return;
+            }
+
+            const parsed = parseConfigJsonFromFile(cfg);
+            if (!parsed) {
+                showError('Invalid config.json', 'Your config.json is not valid JSON. Fix it, then try again.');
+                return;
+            }
+
+            parsed.description = document.getElementById('seoDescription').value ?? '';
+            parsed.googleSiteVerification = document.getElementById('seoGoogleVerification').value ?? '';
+            parsed.extraMetaTags = document.getElementById('seoExtraMeta').value ?? '';
+
+            const out = JSON.stringify(parsed, null, 2);
+            cfg.content = out;
+            setDraftForFile(cfg.id, out);
+
+            if (currentEditingFile?.id === cfg.id) {
+                if (monacoEditor) monacoEditor.setValue(out);
+                else document.getElementById('fileEditor').value = out;
+            }
+
+            document.getElementById('editorStatus').innerText = 'Saved SEO to config.json draft';
+        }
+
+        function normalizeShortcutFromEvent(e) {
+            const parts = [];
+            if (e.ctrlKey) parts.push('Ctrl');
+            if (e.metaKey) parts.push('Meta');
+            if (e.altKey) parts.push('Alt');
+            if (e.shiftKey) parts.push('Shift');
+
+            let key = e.key;
+            if (!key) return '';
+            if (key === ' ') key = 'Space';
+            if (key.length === 1) key = key.toUpperCase();
+            if (key === 'ArrowUp') key = 'Up';
+            if (key === 'ArrowDown') key = 'Down';
+            if (key === 'ArrowLeft') key = 'Left';
+            if (key === 'ArrowRight') key = 'Right';
+            if (['Control', 'Shift', 'Alt', 'Meta'].includes(key)) return '';
+            parts.push(key);
+            return parts.join('+');
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (!isEditorOverlayOpen()) return;
+            // Ignore when typing into inputs/textarea/select
+            const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : '';
+            if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+
+            if (!currentProject) return;
+            const s = loadShortcuts(currentProject.id);
+            const combo = normalizeShortcutFromEvent(e);
+            if (!combo) return;
+
+            if (s.settings && combo === s.settings) {
+                e.preventDefault();
+                if (isSettingsPageOpen()) closeSettingsPage();
+                else openSettingsPage();
+            }
+            if (s.newFile && combo === s.newFile) {
+                e.preventDefault();
+                addNewFile();
+            }
+            if (s.config && combo === s.config) {
+                e.preventDefault();
+                openConfigFromSettings();
+            }
+            if (s.deploy && combo === s.deploy) {
+                e.preventDefault();
+                // only deploy when not in settings page
+                if (!isSettingsPageOpen()) deploySiteAction();
+            }
+        });
 
         document.getElementById('projectName').addEventListener('input', (e) => {
             const val = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-');
@@ -864,10 +1319,10 @@
         };
 
         async function deleteProject(id) {
-            if (confirm("Delete project and all its files?")) {
-                await supabaseClient.from('projects').delete().eq('id', id);
-                fetchProjects();
-            }
+            const ok = await showConfirm('Delete project?', 'Delete project and all its files?', 'Delete', 'Cancel');
+            if (!ok) return;
+            await supabaseClient.from('projects').delete().eq('id', id);
+            fetchProjects();
         }
 
         async function openEditor(index) {
@@ -884,6 +1339,7 @@
             
             document.getElementById('editorOverlay').classList.remove('hidden');
             loadProjectSettings(currentProject.id);
+            document.getElementById('projectSettingsPage')?.classList.add('hidden');
             
             const { data, error } = await supabaseClient
                 .from('project_files')
@@ -936,8 +1392,12 @@
         }
 
         async function addNewFile() {
-            const filename = prompt("Enter file name (e.g. style.css):");
+            const filename = await showPrompt('Create new file', 'Enter file name (e.g. style.css):', 'e.g. style.css', 'Create');
             if (filename) {
+                if (filename.trim().toLowerCase() === 'config.json') {
+                    showError('Use recommended config.json', 'This is your website settings file. Add it via the Recommended section instead.');
+                    return;
+                }
                 const { data, error } = await supabaseClient
                     .from('project_files')
                     .insert([{ project_id: currentProject.id, name: filename, content: '' }])
@@ -1028,16 +1488,18 @@
 
         async function deleteFile(id) {
             if (projectFiles.length <= 1) return;
-            if (confirm(`Delete file?`)) {
-                await supabaseClient.from('project_files').delete().eq('id', id);
-                projectFiles = projectFiles.filter(f => f.id !== id);
-                if (currentEditingFile?.id === id) {
-                    currentEditingFile = null;
-                    document.getElementById('fileEditor').classList.add('hidden');
-                    document.getElementById('noFileSelected').classList.remove('hidden');
-                }
-                renderFileList();
+            const ok = await showConfirm('Delete file?', 'This will remove the file from your project.', 'Delete', 'Cancel');
+            if (!ok) return;
+            await supabaseClient.from('project_files').delete().eq('id', id);
+            projectFiles = projectFiles.filter(f => f.id !== id);
+            if (currentEditingFile?.id === id) {
+                currentEditingFile = null;
+                document.getElementById('fileEditor').classList.add('hidden');
+                document.getElementById('monacoEditor').classList.add('hidden');
+                document.getElementById('editorTabsShell').classList.add('hidden');
+                document.getElementById('noFileSelected').classList.remove('hidden');
             }
+            renderFileList();
         }
 
         async function deploySiteAction() {
