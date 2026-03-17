@@ -50,21 +50,10 @@
             -webkit-text-fill-color: transparent;
         }
         .grid-bg {
-            background-image: 
-                linear-gradient(to right, rgba(0,0,0,0.03) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(0,0,0,0.03) 1px, transparent 1px);
-            background-size: 40px 40px;
-        }
-        .hero-glow {
-            background: radial-gradient(circle at 50% 50%, rgba(37, 99, 235, 0.1) 0%, transparent 50%);
-        }
-        .floating {
-            animation: floating 3s ease-in-out infinite;
-        }
-        @keyframes floating {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
-            100% { transform: translateY(0px); }
+            background-image:
+                linear-gradient(to right, rgba(2,6,23,0.04) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(2,6,23,0.04) 1px, transparent 1px);
+            background-size: 48px 48px;
         }
     </style>
 </head>
@@ -127,8 +116,6 @@
                 
                 <div class="hidden lg:flex items-center space-x-10 text-sm font-semibold text-slate-600">
                     <a href="#features" class="hover:text-blue-600 transition-colors">Features</a>
-                    <a href="#infrastructure" class="hover:text-blue-600 transition-colors">Infrastructure</a>
-                    <a href="mailto:support@litestack.example" class="hover:text-blue-600 transition-colors">Contact</a>
                 </div>
 
                 <div class="flex items-center space-x-6">
@@ -139,168 +126,100 @@
         </div>
     </nav>
 
-    <header class="relative pt-40 pb-24 lg:pt-56 lg:pb-40 grid-bg">
-        <div class="absolute inset-0 hero-glow pointer-events-none"></div>
-        <div class="max-w-7xl mx-auto px-6 text-center lg:text-left flex flex-col lg:flex-row items-center gap-16 lg:gap-24 relative z-10">
-            
-            <div class="flex-1 max-w-2xl">
-                <div class="inline-flex items-center space-x-3 bg-white border border-slate-100 px-4 py-2 rounded-2xl shadow-sm mb-10 transform hover:-rotate-1 transition-transform">
-                    <span class="flex h-2 w-2 relative">
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-                    </span>
-                    <span class="text-xs font-extrabold text-slate-600 tracking-wide uppercase">New Version Live</span>
+    <header class="pt-36 pb-20 lg:pt-44 lg:pb-28 grid-bg">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="max-w-3xl">
+                <div class="inline-flex items-center gap-2 bg-white border border-slate-100 px-3 py-1.5 rounded-2xl shadow-sm mb-8">
+                    <span class="inline-flex w-2 h-2 rounded-full bg-blue-600"></span>
+                    <span class="text-xs font-extrabold text-slate-600 tracking-wide uppercase">LiteStack</span>
                 </div>
-                
-                <h1 class="text-6xl lg:text-8xl font-[900] tracking-tighter mb-8 leading-[0.95] text-slate-900">
-                    Free and <span class="gradient-text">simple</span> web hosting
-                </h1>
-                
-                <p class="text-slate-500 text-xl lg:text-2xl mb-12 leading-relaxed font-medium">
-                    Build and deploy sites in minutes with a VS Code-style editor, instant preview, and a powerful <span class="font-extrabold text-slate-700">config.json</span> for advanced control.
-                </p>
-                
-                <div class="flex flex-col sm:flex-row items-center gap-6">
-                    <button id="heroPrimaryBtn" onclick="openModal()" class="w-full sm:w-auto bg-blue-600 text-white px-10 py-5 rounded-[1.25rem] font-extrabold hover:bg-blue-700 transition-all shadow-2xl shadow-blue-100 text-lg hover:-translate-y-1">Start Deploying Free</button>
-                    <a href="#features" class="text-slate-900 hover:text-blue-600 font-extrabold transition-all text-lg flex items-center group">
-                        See Features <i class="fas fa-arrow-right ml-3 transition-transform group-hover:translate-x-2"></i>
-                    </a>
-                </div>
-            </div>
 
-            <div class="flex-1 w-full max-w-xl">
-                <div class="relative group">
-                    <div class="absolute -inset-4 bg-gradient-to-tr from-blue-600 to-purple-600 rounded-[2.5rem] blur-2xl opacity-10 group-hover:opacity-20 transition-opacity"></div>
-                    <div class="relative bg-slate-950 rounded-[2rem] border border-slate-800 shadow-2xl overflow-hidden floating">
-                        <div class="flex items-center justify-between px-6 py-4 bg-slate-900/50 border-b border-slate-800">
-                            <div class="flex space-x-2">
-                                <div class="w-3 h-3 rounded-full bg-slate-700"></div>
-                                <div class="w-3 h-3 rounded-full bg-slate-700"></div>
-                                <div class="w-3 h-3 rounded-full bg-slate-700"></div>
-                            </div>
-                            <span class="text-[10px] font-mono text-slate-500 font-bold uppercase tracking-widest">lite-console-v2</span>
-                        </div>
-                        <div class="p-8 font-mono text-sm leading-relaxed text-slate-400">
-                            <div class="flex space-x-4 mb-4">
-                                <span class="text-blue-500">➜</span>
-                                <span class="text-white">lite publish my-site</span>
-                            </div>
-                            <div class="flex space-x-4">
-                                <span class="text-slate-600">...</span>
-                                <span>Discovering global nodes... <span class="text-green-500">[OK]</span></span>
-                            </div>
-                            <div class="flex space-x-4">
-                                <span class="text-slate-600">...</span>
-                                <span>Propagating static assets... <span class="text-green-500">[OK]</span></span>
-                            </div>
-                            <div class="flex space-x-4 mt-6">
-                                <span class="text-blue-500">➜</span>
-                                <span class="text-emerald-400">Deployment successful!</span>
-                            </div>
-                            <div class="mt-4 p-4 bg-slate-900 rounded-xl border border-slate-800 flex items-center justify-between">
-                                <span class="text-blue-400 truncate">litestack.pages.dev?site=my-site</span>
-                                <i class="fas fa-external-link-alt text-slate-600 text-xs"></i>
-                            </div>
-                        </div>
-                    </div>
+                <h1 class="text-5xl lg:text-7xl font-[900] tracking-tight leading-[1.05] text-slate-900">
+                    Build, preview, deploy.
+                    <span class="gradient-text">No setup.</span>
+                </h1>
+
+                <p class="mt-6 text-slate-500 text-lg lg:text-xl leading-relaxed font-medium">
+                    A simple dashboard with a code editor, instant preview, and safe drafts until you click Deploy.
+                </p>
+
+                <div class="mt-10 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <button id="heroPrimaryBtn" onclick="openModal()" class="w-full sm:w-auto bg-blue-600 text-white px-8 py-4 rounded-2xl font-extrabold hover:bg-blue-700 transition-all shadow-xl shadow-blue-100">
+                        Get started
+                    </button>
+                    <a href="#features" class="text-slate-900 hover:text-blue-600 font-extrabold transition-all flex items-center">
+                        See features <i class="fas fa-arrow-right ml-3"></i>
+                    </a>
                 </div>
             </div>
         </div>
     </header>
 
-    <section id="features" class="py-32 bg-slate-50 relative">
+    <section id="features" class="py-24 bg-slate-50 relative">
         <div class="max-w-7xl mx-auto px-6">
-            <div class="flex flex-col lg:flex-row justify-between items-end mb-24 gap-8">
-                <div class="max-w-2xl">
-                    <h2 class="text-5xl font-[900] tracking-tight mb-6 leading-tight">Edit like VS Code. <br>Deploy like magic.</h2>
-                    <p class="text-slate-500 text-xl font-medium">A clean dashboard with a Monaco-powered editor, one-click starter files, and a config layer for metadata, access control, and injection.</p>
-                </div>
+            <div class="max-w-2xl mb-12">
+                <h2 class="text-3xl lg:text-4xl font-[900] tracking-tight mb-3 text-slate-900">Everything you need.</h2>
+                <p class="text-slate-500 text-lg font-medium">Keep it simple: edit files, preview instantly, deploy when you’re ready.</p>
             </div>
 
-            <div class="grid md:grid-cols-3 gap-8">
-                <div class="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group">
-                    <div class="w-16 h-16 bg-slate-50 text-slate-900 rounded-2xl flex items-center justify-center mb-10 group-hover:bg-slate-900 group-hover:text-white transition-colors">
-                        <i class="fas fa-code text-2xl"></i>
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="bg-white p-7 rounded-3xl border border-slate-100 shadow-sm">
+                    <div class="w-12 h-12 bg-slate-50 text-slate-900 rounded-2xl flex items-center justify-center mb-6">
+                        <i class="fas fa-code text-lg"></i>
                     </div>
-                    <h3 class="text-2xl font-extrabold mb-4">VS Code-style Editor</h3>
-                    <p class="text-slate-500 leading-relaxed font-medium">Monaco editing, smart syntax highlighting, minimap, and an editor that feels familiar the second you open it.</p>
-                </div>
-                
-                <div class="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group">
-                    <div class="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-10 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-                        <i class="fas fa-file-circle-plus text-2xl"></i>
-                    </div>
-                    <h3 class="text-2xl font-extrabold mb-4">Starter Files, Fast</h3>
-                    <p class="text-slate-500 leading-relaxed font-medium">One click to add <span class="font-extrabold">style.css</span>, <span class="font-extrabold">script.js</span>, <span class="font-extrabold">404.html</span>, <span class="font-extrabold">robots.txt</span>, and more.</p>
+                    <h3 class="text-lg font-extrabold mb-2">Editor</h3>
+                    <p class="text-slate-500 leading-relaxed font-medium">Monaco-powered editing with drafts saved locally.</p>
                 </div>
 
-                <div class="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group">
-                    <div class="w-16 h-16 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mb-10 group-hover:bg-purple-600 group-hover:text-white transition-colors">
-                        <i class="fas fa-sliders-h text-2xl"></i>
+                <div class="bg-white p-7 rounded-3xl border border-slate-100 shadow-sm">
+                    <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-6">
+                        <i class="fas fa-eye text-lg"></i>
                     </div>
-                    <h3 class="text-2xl font-extrabold mb-4">Powerful config.json</h3>
-                    <p class="text-slate-500 leading-relaxed font-medium">Set title/description/favicon/theme color, protect with a password, restrict devices, and inject global CSS/JS or custom head tags.</p>
+                    <h3 class="text-lg font-extrabold mb-2">Preview</h3>
+                    <p class="text-slate-500 leading-relaxed font-medium">See changes fast in an isolated preview frame.</p>
+                </div>
+
+                <div class="bg-white p-7 rounded-3xl border border-slate-100 shadow-sm">
+                    <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-6">
+                        <i class="fas fa-cloud-upload-alt text-lg"></i>
+                    </div>
+                    <h3 class="text-lg font-extrabold mb-2">Deploy</h3>
+                    <p class="text-slate-500 leading-relaxed font-medium">Nothing goes live until you click Deploy.</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <section id="infrastructure" class="py-40 bg-slate-950 text-white overflow-hidden">
-        <div class="max-w-7xl mx-auto px-6 relative">
-            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none"></div>
-            
-            <div class="grid lg:grid-cols-2 gap-32 items-center relative z-10">
-                <div>
-                    <h2 class="text-5xl lg:text-7xl font-[900] tracking-tight mb-10 leading-[1.1]">Global reach, <br>local speed.</h2>
-                    <p class="text-slate-400 text-xl lg:text-2xl mb-12 leading-relaxed font-medium">
-                        Your application lives on thousands of servers simultaneously across every continent.
-                    </p>
-                    
-                    <div class="grid grid-cols-2 gap-8 mb-12">
-                        <div class="border-l-2 border-blue-600 pl-6 py-2">
-                            <div class="text-4xl font-extrabold mb-1">275+</div>
-                            <div class="text-sm font-bold text-slate-500 uppercase tracking-widest">Edge Hubs</div>
-                        </div>
-                        <div class="border-l-2 border-blue-600 pl-6 py-2">
-                            <div class="text-4xl font-extrabold mb-1">&lt;15ms</div>
-                            <div class="text-sm font-bold text-slate-500 uppercase tracking-widest">Avg Latency</div>
-                        </div>
-                    </div>
+    <section class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="max-w-2xl">
+                <h2 class="text-3xl lg:text-4xl font-[900] tracking-tight text-slate-900">How it works</h2>
+                <p class="mt-3 text-slate-500 text-lg font-medium">A simple flow that keeps you in control.</p>
+            </div>
 
-                    <button onclick="openModal()" class="inline-flex items-center px-8 py-4 bg-white text-slate-950 rounded-2xl font-extrabold hover:bg-slate-200 transition-all">
-                        Join the Network <i class="fas fa-globe ml-3"></i>
-                    </button>
+            <div class="mt-10 grid md:grid-cols-3 gap-6">
+                <div class="p-7 rounded-3xl border border-slate-100 bg-slate-50">
+                    <div class="text-xs font-black uppercase tracking-widest text-slate-400">Step 1</div>
+                    <div class="mt-2 text-lg font-extrabold text-slate-900">Create a project</div>
+                    <div class="mt-2 text-slate-500 font-medium">Start with an `index.html` and add files as you go.</div>
                 </div>
+                <div class="p-7 rounded-3xl border border-slate-100 bg-slate-50">
+                    <div class="text-xs font-black uppercase tracking-widest text-slate-400">Step 2</div>
+                    <div class="mt-2 text-lg font-extrabold text-slate-900">Edit safely</div>
+                    <div class="mt-2 text-slate-500 font-medium">Drafts save locally while you iterate.</div>
+                </div>
+                <div class="p-7 rounded-3xl border border-slate-100 bg-slate-50">
+                    <div class="text-xs font-black uppercase tracking-widest text-slate-400">Step 3</div>
+                    <div class="mt-2 text-lg font-extrabold text-slate-900">Deploy when ready</div>
+                    <div class="mt-2 text-slate-500 font-medium">Publish to the internet only when you click Deploy.</div>
+                </div>
+            </div>
 
-                <div class="relative">
-                    <div class="bg-slate-900 rounded-3xl border border-slate-800 p-8 shadow-2xl">
-                        <div class="flex items-center justify-between mb-10">
-                            <h4 class="font-bold text-lg">Cluster Topology</h4>
-                            <div class="px-3 py-1 bg-green-500/10 text-green-400 rounded-full text-xs font-extrabold border border-green-500/20">OPERATIONAL</div>
-                        </div>
-                        
-                        <div class="space-y-8">
-                            <div class="relative pb-8 border-b border-slate-800">
-                                <div class="flex justify-between items-center mb-4">
-                                    <span class="text-sm font-bold text-slate-400 uppercase tracking-widest">Asset Delivery</span>
-                                    <span class="text-sm font-mono text-blue-400">100%</span>
-                                </div>
-                                <div class="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
-                                    <div class="h-full bg-blue-600 w-full rounded-full"></div>
-                                </div>
-                            </div>
-                            <div class="relative pb-8 border-b border-slate-800">
-                                <div class="flex justify-between items-center mb-4">
-                                    <span class="text-sm font-bold text-slate-400 uppercase tracking-widest">Worker Isolation</span>
-                                    <span class="text-sm font-mono text-blue-400">99.9%</span>
-                                </div>
-                                <div class="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
-                                    <div class="h-full bg-blue-600 w-[99.9%] rounded-full"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <div class="mt-10 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <button onclick="openModal()" class="bg-slate-900 text-white px-7 py-4 rounded-2xl font-extrabold hover:bg-black transition-all shadow-lg">
+                    Open dashboard
+                </button>
+                <div class="text-sm text-slate-500 font-medium">Already signed in? This will take you straight to your projects.</div>
             </div>
         </div>
     </section>
