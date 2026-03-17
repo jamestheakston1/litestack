@@ -13,6 +13,7 @@
         .glass { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); }
         .modal-overlay { background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(4px); transition: all 0.3s ease; }
         #monacoEditor { width: 100%; height: 100%; }
+        .drag-ghost { opacity: 0.6; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.0/min/vs/loader.min.js"></script>
 </head>
@@ -251,8 +252,68 @@
                     <i class="fas fa-file-code text-4xl mb-4 opacity-20"></i>
                     <p>Select a file to edit or create a new one.</p>
                 </div>
-                <div id="monacoEditor" class="hidden absolute inset-0"></div>
-                <textarea id="fileEditor" class="hidden w-full h-full p-8 font-mono text-sm outline-none resize-none bg-gray-50" spellcheck="false"></textarea>
+                <div id="editorTabsShell" class="hidden absolute inset-0 flex flex-col">
+                    <div class="border-b border-gray-100 px-4 py-2 flex items-center justify-between bg-white">
+                        <div class="flex items-center gap-2">
+                            <button id="tabCodeBtn" class="px-3 py-1.5 rounded-lg text-sm font-extrabold transition bg-blue-600 text-white" onclick="switchEditorTab('code')">
+                                Code editor
+                            </button>
+                            <button id="tabDropBtn" class="px-3 py-1.5 rounded-lg text-sm font-extrabold transition bg-gray-50 text-gray-700 hover:bg-gray-100" onclick="switchEditorTab('drop')">
+                                DropMe <span class="ml-1 text-[10px] font-black px-1.5 py-0.5 rounded-md bg-purple-100 text-purple-700 align-middle">beta</span>
+                            </button>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button id="dropSyncBtn" class="hidden px-3 py-1.5 rounded-lg text-xs font-black bg-gray-900 text-white hover:bg-black transition" onclick="dropmeSyncToCode()">
+                                <i class="fas fa-wand-magic-sparkles mr-2"></i> Sync to code
+                            </button>
+                            <button id="dropResetBtn" class="hidden px-3 py-1.5 rounded-lg text-xs font-black border border-gray-200 hover:bg-gray-50 transition" onclick="dropmeReset()">
+                                Reset
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 relative">
+                        <div id="codeEditorPanel" class="absolute inset-0">
+                            <div id="monacoEditor" class="hidden absolute inset-0"></div>
+                            <textarea id="fileEditor" class="hidden w-full h-full p-8 font-mono text-sm outline-none resize-none bg-gray-50" spellcheck="false"></textarea>
+                        </div>
+
+                        <div id="dropmePanel" class="hidden absolute inset-0 bg-gray-50">
+                            <div class="h-full flex overflow-hidden">
+                                <div class="w-64 border-r border-gray-100 bg-white p-4 overflow-y-auto">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <h3 class="text-xs font-black uppercase tracking-widest text-gray-400">Blocks</h3>
+                                        <span class="text-[10px] font-mono text-gray-400" id="dropmeHint">Drag into canvas</span>
+                                    </div>
+                                    <div id="dropmePalette" class="space-y-2"></div>
+                                </div>
+
+                                <div class="flex-1 p-6 overflow-y-auto">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <div>
+                                            <div class="text-sm font-extrabold text-gray-900">Canvas</div>
+                                            <div class="text-xs text-gray-400">Reorder blocks or click to edit.</div>
+                                        </div>
+                                        <button class="px-3 py-1.5 text-xs font-black rounded-lg bg-white border border-gray-200 hover:bg-gray-50 transition" onclick="dropmeAddSpacer()">
+                                            + Spacer
+                                        </button>
+                                    </div>
+
+                                    <div id="dropmeCanvas" class="min-h-[280px] bg-white border border-dashed border-gray-200 rounded-2xl p-4 space-y-3"></div>
+                                </div>
+
+                                <div class="w-80 border-l border-gray-100 bg-white p-5 overflow-y-auto">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <h3 class="text-xs font-black uppercase tracking-widest text-gray-400">Properties</h3>
+                                        <button id="dropmeDeleteBtn" class="hidden text-xs font-black text-red-600 hover:text-red-700" onclick="dropmeDeleteSelected()">Delete</button>
+                                    </div>
+                                    <div id="dropmePropsEmpty" class="text-sm text-gray-400">Select a block to edit.</div>
+                                    <div id="dropmeProps" class="hidden space-y-4"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -312,6 +373,7 @@
         let monacoEditor = null;
         let monacoDisposer = null;
         let inFlightSavePromise = null;
+        let editorActiveTab = 'code'; // 'code' | 'drop'
         let editorSettings = {
             theme: 'vs-dark',
             fontSize: 13,
@@ -423,11 +485,12 @@
             document.getElementById('editorStatus').innerText = "Unsaved draft changes...";
 
             const fileId = currentEditingFile.id;
-            const content = currentEditingFile.content ?? '';
 
             clearTimeout(saveTimeout);
             saveTimeout = setTimeout(() => {
-                inFlightSavePromise = saveFileNow(fileId, content).catch((err) => {
+                if (!currentEditingFile || currentEditingFile.id !== fileId) return;
+                const latestContent = currentEditingFile.content ?? '';
+                inFlightSavePromise = saveFileNow(fileId, latestContent).catch((err) => {
                     console.error('Autosave failed', err);
                 });
             }, editorSettings.autoSaveDelay ?? 1000);
@@ -519,6 +582,7 @@
                         if (!currentEditingFile) return;
                         currentEditingFile.content = monacoEditor.getValue();
                         scheduleAutosave();
+                        if (editorActiveTab === 'drop') dropmeMarkDirty(true);
                     });
                 } else {
                     const model = monacoEditor.getModel();
@@ -804,8 +868,11 @@
         function closeEditor() {
             document.getElementById('editorOverlay').classList.add('hidden');
             currentEditingFile = null;
+            clearTimeout(saveTimeout);
+            saveTimeout = null;
             document.getElementById('fileEditor').classList.add('hidden');
             document.getElementById('monacoEditor').classList.add('hidden');
+            document.getElementById('editorTabsShell').classList.add('hidden');
             document.getElementById('noFileSelected').classList.remove('hidden');
             document.getElementById('projectSettingsPanel').classList.add('hidden');
             fetchProjects();
@@ -858,8 +925,10 @@
             const editor = document.getElementById('fileEditor');
             const placeholder = document.getElementById('noFileSelected');
             const monacoContainer = document.getElementById('monacoEditor');
+            const tabsShell = document.getElementById('editorTabsShell');
             
             placeholder.classList.add('hidden');
+            tabsShell.classList.remove('hidden');
             editor.classList.add('hidden');
 
             if (monacoContainer) {
@@ -869,6 +938,9 @@
                 editor.classList.remove('hidden');
                 editor.value = file.content;
             }
+
+            // Keep tab UI consistent when switching files.
+            switchEditorTab(editorActiveTab);
             
             renderFileList();
         }
@@ -877,6 +949,7 @@
             if (currentEditingFile) {
                 currentEditingFile.content = e.target.value;
                 scheduleAutosave();
+                if (editorActiveTab === 'drop') dropmeMarkDirty(true);
             }
         });
 
@@ -967,6 +1040,470 @@
         async function handleLogout() {
             await supabaseClient.auth.signOut();
             window.location.href = '/';
+        }
+
+        function switchEditorTab(tab) {
+            editorActiveTab = tab === 'drop' ? 'drop' : 'code';
+
+            const tabCodeBtn = document.getElementById('tabCodeBtn');
+            const tabDropBtn = document.getElementById('tabDropBtn');
+            const codePanel = document.getElementById('codeEditorPanel');
+            const dropPanel = document.getElementById('dropmePanel');
+            const syncBtn = document.getElementById('dropSyncBtn');
+            const resetBtn = document.getElementById('dropResetBtn');
+
+            const isDrop = editorActiveTab === 'drop';
+
+            tabCodeBtn.className = `px-3 py-1.5 rounded-lg text-sm font-extrabold transition ${isDrop ? 'bg-gray-50 text-gray-700 hover:bg-gray-100' : 'bg-blue-600 text-white'}`;
+            tabDropBtn.className = `px-3 py-1.5 rounded-lg text-sm font-extrabold transition ${isDrop ? 'bg-blue-600 text-white' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'}`;
+
+            codePanel.classList.toggle('hidden', isDrop);
+            dropPanel.classList.toggle('hidden', !isDrop);
+            syncBtn.classList.toggle('hidden', !isDrop);
+            resetBtn.classList.toggle('hidden', !isDrop);
+
+            if (isDrop) dropmeLoadForCurrentFile();
+        }
+
+        // ----------------------
+        // DropMe (beta) builder
+        // ----------------------
+        const DROP_BLOCKS = [
+            { type: 'heading', label: 'Heading', icon: 'fa-heading' },
+            { type: 'text', label: 'Text', icon: 'fa-paragraph' },
+            { type: 'button', label: 'Button', icon: 'fa-hand-pointer' },
+            { type: 'image', label: 'Image', icon: 'fa-image' },
+            { type: 'divider', label: 'Divider', icon: 'fa-grip-lines' },
+            { type: 'spacer', label: 'Spacer', icon: 'fa-up-down' }
+        ];
+
+        let dropmeStateByFileId = new Map(); // fileId -> { blocks, selectedId, dirty }
+        let dropmeDrag = { kind: null, type: null, id: null };
+
+        function dropmeGetState() {
+            const fileId = currentEditingFile?.id;
+            if (!fileId) return null;
+            if (!dropmeStateByFileId.has(fileId)) {
+                dropmeStateByFileId.set(fileId, { blocks: [], selectedId: null, dirty: false });
+            }
+            return dropmeStateByFileId.get(fileId);
+        }
+
+        function dropmeMarkDirty(val) {
+            const st = dropmeGetState();
+            if (!st) return;
+            st.dirty = !!val;
+        }
+
+        function dropmeLoadForCurrentFile() {
+            const palette = document.getElementById('dropmePalette');
+            if (!palette) return;
+
+            if (!palette.dataset.ready) {
+                palette.dataset.ready = '1';
+                palette.innerHTML = DROP_BLOCKS.map(b => `
+                    <div class="p-3 rounded-xl border border-gray-200 bg-white hover:shadow-sm transition cursor-grab active:cursor-grabbing flex items-center justify-between"
+                         draggable="true"
+                         data-dropme-palette="1"
+                         data-type="${b.type}">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-700">
+                                <i class="fas ${b.icon} text-sm"></i>
+                            </div>
+                            <div class="text-sm font-extrabold text-gray-900">${b.label}</div>
+                        </div>
+                        <div class="text-[10px] font-mono text-gray-400">drag</div>
+                    </div>
+                `).join('');
+
+                palette.addEventListener('dragstart', (e) => {
+                    const item = e.target.closest('[data-dropme-palette="1"]');
+                    if (!item) return;
+                    dropmeDrag = { kind: 'new', type: item.dataset.type, id: null };
+                    e.dataTransfer.effectAllowed = 'copy';
+                    e.dataTransfer.setData('text/plain', `dropme:new:${item.dataset.type}`);
+                    item.classList.add('drag-ghost');
+                });
+                palette.addEventListener('dragend', (e) => {
+                    const item = e.target.closest('[data-dropme-palette="1"]');
+                    if (item) item.classList.remove('drag-ghost');
+                    dropmeDrag = { kind: null, type: null, id: null };
+                });
+            }
+
+            const hint = document.getElementById('dropmeHint');
+            const canSync = (currentEditingFile?.name || '').toLowerCase().endsWith('.html');
+            hint.innerText = canSync ? 'Drag into canvas' : 'Works best with .html files';
+
+            dropmeRender();
+        }
+
+        function dropmeReset() {
+            const st = dropmeGetState();
+            if (!st) return;
+            st.blocks = [];
+            st.selectedId = null;
+            st.dirty = false;
+            dropmeRender();
+        }
+
+        function dropmeAddSpacer() {
+            dropmeInsertBlock({ type: 'spacer' });
+        }
+
+        function dropmeInsertBlock(partial, index = null) {
+            const st = dropmeGetState();
+            if (!st) return;
+            const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2);
+
+            const base = {
+                id,
+                type: partial.type,
+                text: 'Text',
+                href: '#',
+                src: 'https://images.unsplash.com/photo-1520975682031-a0601f4981ea?auto=format&fit=crop&w=1400&q=80',
+                alt: 'Image',
+                align: 'left',
+                size: 'md',
+                variant: 'primary',
+                height: 24
+            };
+
+            let block = { ...base, ...partial };
+            if (block.type === 'heading') block.text = 'A great headline';
+            if (block.type === 'text') block.text = 'Write something people will actually read.';
+            if (block.type === 'button') block.text = 'Click me';
+            if (block.type === 'divider') delete block.text;
+            if (block.type === 'spacer') delete block.text;
+            if (block.type === 'image') block.alt = 'Hero image';
+
+            if (index === null || index < 0 || index > st.blocks.length) st.blocks.push(block);
+            else st.blocks.splice(index, 0, block);
+
+            st.selectedId = id;
+            st.dirty = true;
+            dropmeRender();
+        }
+
+        function dropmeMoveBlock(fromIdx, toIdx) {
+            const st = dropmeGetState();
+            if (!st) return;
+            if (fromIdx === toIdx) return;
+            const [item] = st.blocks.splice(fromIdx, 1);
+            st.blocks.splice(toIdx, 0, item);
+            st.dirty = true;
+            dropmeRender();
+        }
+
+        function dropmeDeleteSelected() {
+            const st = dropmeGetState();
+            if (!st || !st.selectedId) return;
+            st.blocks = st.blocks.filter(b => b.id !== st.selectedId);
+            st.selectedId = null;
+            st.dirty = true;
+            dropmeRender();
+        }
+
+        function dropmeSelect(id) {
+            const st = dropmeGetState();
+            if (!st) return;
+            st.selectedId = id;
+            dropmeRender();
+        }
+
+        function dropmeUpdateSelected(patch) {
+            const st = dropmeGetState();
+            if (!st || !st.selectedId) return;
+            const idx = st.blocks.findIndex(b => b.id === st.selectedId);
+            if (idx === -1) return;
+            st.blocks[idx] = { ...st.blocks[idx], ...patch };
+            st.dirty = true;
+            dropmeRender();
+        }
+
+        function dropmeRender() {
+            const canvas = document.getElementById('dropmeCanvas');
+            const props = document.getElementById('dropmeProps');
+            const propsEmpty = document.getElementById('dropmePropsEmpty');
+            const delBtn = document.getElementById('dropmeDeleteBtn');
+            if (!canvas || !props || !propsEmpty) return;
+
+            const st = dropmeGetState();
+            if (!st) return;
+
+            if (st.blocks.length === 0) {
+                canvas.innerHTML = `
+                    <div class="py-16 text-center text-gray-400">
+                        <div class="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center">
+                            <i class="fas fa-hand-point-up text-gray-300 text-xl"></i>
+                        </div>
+                        <div class="font-extrabold text-gray-500">Drop blocks here</div>
+                        <div class="text-sm">Start with a Heading, then add Text and a Button.</div>
+                    </div>
+                `;
+            } else {
+                canvas.innerHTML = st.blocks.map((b, idx) => {
+                    const selected = st.selectedId === b.id;
+                    const title = ({
+                        heading: 'Heading',
+                        text: 'Text',
+                        button: 'Button',
+                        image: 'Image',
+                        divider: 'Divider',
+                        spacer: 'Spacer'
+                    })[b.type] || b.type;
+
+                    const subtitle = b.type === 'image' ? (b.alt || 'image') : (b.text || '');
+                    const preview = subtitle ? `<div class="text-xs text-gray-400 truncate">${escapeHtml(subtitle)}</div>` : `<div class="text-xs text-gray-300 italic">No content</div>`;
+
+                    return `
+                        <div class="p-4 rounded-2xl border ${selected ? 'border-blue-500 bg-blue-50/30' : 'border-gray-200 bg-white hover:bg-gray-50'} transition flex items-start justify-between gap-3"
+                             draggable="true"
+                             data-dropme-item="1"
+                             data-id="${b.id}"
+                             data-idx="${idx}">
+                            <div class="flex items-start gap-3 min-w-0">
+                                <div class="w-10 h-10 rounded-xl border border-gray-100 bg-gray-50 flex items-center justify-center text-gray-700 cursor-grab">
+                                    <i class="fas fa-grip-vertical"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="text-sm font-extrabold text-gray-900 flex items-center gap-2">
+                                        ${title}
+                                        ${selected ? '<span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-blue-600 text-white">selected</span>' : ''}
+                                    </div>
+                                    ${preview}
+                                </div>
+                            </div>
+                            <button class="text-gray-300 hover:text-gray-700 transition" title="Select" onclick="dropmeSelect('${b.id}')">
+                                <i class="fas fa-sliders"></i>
+                            </button>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            canvas.ondragover = (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = dropmeDrag.kind === 'new' ? 'copy' : 'move';
+            };
+
+            canvas.ondrop = (e) => {
+                e.preventDefault();
+
+                const targetItem = e.target.closest('[data-dropme-item="1"]');
+                const dropIdx = targetItem ? parseInt(targetItem.dataset.idx, 10) : st.blocks.length;
+
+                if (dropmeDrag.kind === 'new') {
+                    dropmeInsertBlock({ type: dropmeDrag.type }, dropIdx);
+                    return;
+                }
+
+                if (dropmeDrag.kind === 'move') {
+                    const fromIdx = st.blocks.findIndex(b => b.id === dropmeDrag.id);
+                    if (fromIdx === -1) return;
+                    const toIdx = dropIdx > fromIdx ? dropIdx - 1 : dropIdx;
+                    dropmeMoveBlock(fromIdx, Math.max(0, Math.min(st.blocks.length - 1, toIdx)));
+                }
+            };
+
+            canvas.querySelectorAll('[data-dropme-item="1"]').forEach((el) => {
+                el.addEventListener('click', () => dropmeSelect(el.dataset.id));
+                el.addEventListener('dragstart', (e) => {
+                    dropmeDrag = { kind: 'move', type: null, id: el.dataset.id };
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', `dropme:move:${el.dataset.id}`);
+                    el.classList.add('drag-ghost');
+                });
+                el.addEventListener('dragend', () => {
+                    el.classList.remove('drag-ghost');
+                    dropmeDrag = { kind: null, type: null, id: null };
+                });
+            });
+
+            const selected = st.blocks.find(b => b.id === st.selectedId) || null;
+            props.innerHTML = '';
+
+            if (!selected) {
+                props.classList.add('hidden');
+                propsEmpty.classList.remove('hidden');
+                delBtn.classList.add('hidden');
+                return;
+            }
+
+            props.classList.remove('hidden');
+            propsEmpty.classList.add('hidden');
+            delBtn.classList.remove('hidden');
+
+            const commonAlign = `
+                <div>
+                    <label class="block text-xs font-bold uppercase text-gray-400 mb-1 tracking-wider">Alignment</label>
+                    <select class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" onchange="dropmeUpdateSelected({ align: this.value })">
+                        <option value="left" ${selected.align === 'left' ? 'selected' : ''}>Left</option>
+                        <option value="center" ${selected.align === 'center' ? 'selected' : ''}>Center</option>
+                        <option value="right" ${selected.align === 'right' ? 'selected' : ''}>Right</option>
+                    </select>
+                </div>
+            `;
+
+            if (selected.type === 'heading') {
+                props.innerHTML = `
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-400 mb-1 tracking-wider">Text</label>
+                        <input class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value="${escapeHtmlAttr(selected.text || '')}" oninput="dropmeUpdateSelected({ text: this.value })">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-400 mb-1 tracking-wider">Size</label>
+                        <select class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" onchange="dropmeUpdateSelected({ size: this.value })">
+                            <option value="sm" ${selected.size === 'sm' ? 'selected' : ''}>Small</option>
+                            <option value="md" ${selected.size === 'md' ? 'selected' : ''}>Medium</option>
+                            <option value="lg" ${selected.size === 'lg' ? 'selected' : ''}>Large</option>
+                            <option value="xl" ${selected.size === 'xl' ? 'selected' : ''}>XL</option>
+                        </select>
+                    </div>
+                    ${commonAlign}
+                `;
+            } else if (selected.type === 'text') {
+                props.innerHTML = `
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-400 mb-1 tracking-wider">Text</label>
+                        <textarea class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm min-h-[140px]" oninput="dropmeUpdateSelected({ text: this.value })">${escapeHtml(selected.text || '')}</textarea>
+                    </div>
+                    ${commonAlign}
+                `;
+            } else if (selected.type === 'button') {
+                props.innerHTML = `
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-400 mb-1 tracking-wider">Label</label>
+                        <input class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value="${escapeHtmlAttr(selected.text || '')}" oninput="dropmeUpdateSelected({ text: this.value })">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-400 mb-1 tracking-wider">Link (href)</label>
+                        <input class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono" value="${escapeHtmlAttr(selected.href || '')}" oninput="dropmeUpdateSelected({ href: this.value })">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-400 mb-1 tracking-wider">Style</label>
+                        <select class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" onchange="dropmeUpdateSelected({ variant: this.value })">
+                            <option value="primary" ${selected.variant === 'primary' ? 'selected' : ''}>Primary</option>
+                            <option value="secondary" ${selected.variant === 'secondary' ? 'selected' : ''}>Secondary</option>
+                            <option value="ghost" ${selected.variant === 'ghost' ? 'selected' : ''}>Ghost</option>
+                        </select>
+                    </div>
+                    ${commonAlign}
+                `;
+            } else if (selected.type === 'image') {
+                props.innerHTML = `
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-400 mb-1 tracking-wider">Image URL</label>
+                        <input class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono" value="${escapeHtmlAttr(selected.src || '')}" oninput="dropmeUpdateSelected({ src: this.value })">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-400 mb-1 tracking-wider">Alt text</label>
+                        <input class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value="${escapeHtmlAttr(selected.alt || '')}" oninput="dropmeUpdateSelected({ alt: this.value })">
+                    </div>
+                    ${commonAlign}
+                `;
+            } else if (selected.type === 'spacer') {
+                props.innerHTML = `
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-400 mb-1 tracking-wider">Height (px)</label>
+                        <input type="number" min="4" max="200" step="4" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value="${selected.height ?? 24}" oninput="dropmeUpdateSelected({ height: parseInt(this.value, 10) || 24 })">
+                    </div>
+                `;
+            } else if (selected.type === 'divider') {
+                props.innerHTML = `
+                    <div class="text-sm text-gray-500">Divider has no editable properties.</div>
+                `;
+            }
+        }
+
+        function dropmeSyncToCode() {
+            if (!currentEditingFile) return;
+            const isHtml = (currentEditingFile.name || '').toLowerCase().endsWith('.html');
+            if (!isHtml) {
+                showError('DropMe works on HTML', 'Switch to an .html file (like index.html) to sync builder output.');
+                return;
+            }
+
+            const st = dropmeGetState();
+            if (!st) return;
+
+            const html = dropmeGenerateHtml(st.blocks);
+            const wrapped = dropmeWrapAsPage(html, currentProject?.name || 'LiteStack');
+
+            currentEditingFile.content = wrapped;
+            st.dirty = false;
+
+            if (monacoEditor) monacoEditor.setValue(wrapped);
+            else document.getElementById('fileEditor').value = wrapped;
+
+            scheduleAutosave();
+            document.getElementById('editorStatus').innerText = "Unsaved draft changes...";
+        }
+
+        function dropmeGenerateHtml(blocks) {
+            const parts = [];
+            parts.push(`<main class="mx-auto max-w-3xl px-6 py-16">`);
+            parts.push(`<div class="space-y-8">`);
+
+            for (const b of blocks) {
+                const alignCls = b.align === 'center' ? 'text-center' : (b.align === 'right' ? 'text-right' : 'text-left');
+                if (b.type === 'heading') {
+                    const sizeCls = ({ sm: 'text-2xl', md: 'text-3xl', lg: 'text-4xl', xl: 'text-5xl' })[b.size] || 'text-3xl';
+                    parts.push(`<h1 class="${alignCls} ${sizeCls} font-black tracking-tight text-slate-900">${escapeHtml(b.text || '')}</h1>`);
+                } else if (b.type === 'text') {
+                    parts.push(`<p class="${alignCls} text-slate-600 text-lg leading-relaxed">${escapeHtml(b.text || '')}</p>`);
+                } else if (b.type === 'button') {
+                    const variantCls = b.variant === 'secondary'
+                        ? 'bg-slate-900 text-white hover:bg-black'
+                        : b.variant === 'ghost'
+                            ? 'bg-white border border-slate-200 text-slate-900 hover:bg-slate-50'
+                            : 'bg-blue-600 text-white hover:bg-blue-700';
+                    const wrapAlign = b.align === 'center' ? 'justify-center' : (b.align === 'right' ? 'justify-end' : 'justify-start');
+                    parts.push(`<div class="flex ${wrapAlign}"><a class="inline-flex items-center px-6 py-3 rounded-xl font-extrabold transition ${variantCls}" href="${escapeHtmlAttr(b.href || '#')}">${escapeHtml(b.text || 'Button')}</a></div>`);
+                } else if (b.type === 'image') {
+                    const wrapAlign = b.align === 'center' ? 'mx-auto' : (b.align === 'right' ? 'ml-auto' : '');
+                    parts.push(`<figure class="${alignCls}"><img class="w-full max-w-3xl ${wrapAlign} rounded-3xl border border-slate-100 shadow-sm" src="${escapeHtmlAttr(b.src || '')}" alt="${escapeHtmlAttr(b.alt || '')}"></figure>`);
+                } else if (b.type === 'divider') {
+                    parts.push(`<hr class="border-slate-200">`);
+                } else if (b.type === 'spacer') {
+                    const h = Math.max(4, Math.min(200, parseInt(b.height ?? 24, 10) || 24));
+                    parts.push(`<div style="height:${h}px"></div>`);
+                }
+            }
+
+            parts.push(`</div>`);
+            parts.push(`</main>`);
+            return parts.join('\n');
+        }
+
+        function dropmeWrapAsPage(bodyHtml, title) {
+            const safeTitle = escapeHtmlAttr(title || 'LiteStack');
+            return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${safeTitle}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-white text-slate-900">
+${bodyHtml}
+  </body>
+</html>
+`;
+        }
+
+        function escapeHtml(str) {
+            return String(str ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+        }
+
+        function escapeHtmlAttr(str) {
+            return escapeHtml(str);
         }
 
         window.onload = checkSession;
