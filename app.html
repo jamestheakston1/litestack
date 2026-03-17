@@ -1581,15 +1581,25 @@
 
             const isDrop = editorActiveTab === 'drop';
 
-            if (tabCodeBtn) tabCodeBtn.className = `px-3 py-1.5 rounded-lg text-sm font-extrabold transition ${isDrop ? 'bg-gray-50 text-gray-700 hover:bg-gray-100' : 'bg-blue-600 text-white'}`;
-            if (tabDropBtn) tabDropBtn.className = `px-3 py-1.5 rounded-lg text-sm font-extrabold transition ${isDrop ? 'bg-blue-600 text-white' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'}`;
+            const fileNameLower = (currentEditingFile?.name || '').toLowerCase();
+            const dropAllowed = fileNameLower.endsWith('.html') && fileNameLower !== 'config.json';
+            if (editorActiveTab === 'drop' && !dropAllowed) {
+                editorActiveTab = 'code';
+            }
+            const isDropFinal = editorActiveTab === 'drop';
 
-            if (codePanel) codePanel.classList.toggle('hidden', isDrop);
-            if (dropPanel) dropPanel.classList.toggle('hidden', !isDrop);
-            if (syncBtn) syncBtn.classList.toggle('hidden', !isDrop);
-            if (resetBtn) resetBtn.classList.toggle('hidden', !isDrop);
+            if (tabCodeBtn) tabCodeBtn.className = `px-3 py-1.5 rounded-lg text-sm font-extrabold transition ${isDropFinal ? 'bg-gray-50 text-gray-700 hover:bg-gray-100' : 'bg-blue-600 text-white'}`;
+            if (tabDropBtn) {
+                tabDropBtn.disabled = !dropAllowed;
+                tabDropBtn.className = `px-3 py-1.5 rounded-lg text-sm font-extrabold transition ${dropAllowed ? (isDropFinal ? 'bg-blue-600 text-white' : 'bg-gray-50 text-gray-700 hover:bg-gray-100') : 'bg-gray-50 text-gray-300 cursor-not-allowed'}`;
+            }
 
-            if (isDrop) dropmeLoadForCurrentFile();
+            if (codePanel) codePanel.classList.toggle('hidden', isDropFinal);
+            if (dropPanel) dropPanel.classList.toggle('hidden', !isDropFinal);
+            if (syncBtn) syncBtn.classList.toggle('hidden', !isDropFinal);
+            if (resetBtn) resetBtn.classList.toggle('hidden', !isDropFinal);
+
+            if (isDropFinal) dropmeLoadForCurrentFile();
         }
 
         // ----------------------
@@ -1947,9 +1957,10 @@
 
         function dropmeSyncToCode() {
             if (!currentEditingFile) return;
-            const isHtml = (currentEditingFile.name || '').toLowerCase().endsWith('.html');
+            const fileLower = (currentEditingFile.name || '').toLowerCase();
+            const isHtml = fileLower.endsWith('.html') && fileLower !== 'config.json';
             if (!isHtml) {
-                showError('DropMe works on HTML', 'Switch to an .html file (like index.html) to sync builder output.');
+                showError('DropMe works on HTML', 'Switch to an .html file (like index.html). DropMe is disabled for config.json.');
                 return;
             }
 
