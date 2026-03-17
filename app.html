@@ -15,6 +15,16 @@
         #monacoEditor { width: 100%; height: 100%; }
         .drag-ghost { opacity: 0.6; }
         .recommended-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+        .anim-fade-scale { animation: fadeScaleIn 160ms ease-out; transform-origin: center; }
+        .anim-slide-in { animation: slideIn 180ms ease-out; transform-origin: top center; }
+        @keyframes fadeScaleIn {
+            from { opacity: 0; transform: translateY(8px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.0/min/vs/loader.min.js"></script>
 </head>
@@ -125,7 +135,7 @@
     </div>
 
     <div id="deploySuccessModal" class="fixed inset-0 modal-overlay z-[500] hidden flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl p-8 text-center">
+        <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl p-8 text-center anim-fade-scale">
             <div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl">
                 <i class="fas fa-check"></i>
             </div>
@@ -140,7 +150,7 @@
     </div>
 
     <div id="errorModal" class="fixed inset-0 modal-overlay z-[300] hidden flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-8 text-center">
+        <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-8 text-center anim-fade-scale">
             <div class="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <i class="fas fa-exclamation-triangle text-2xl"></i>
             </div>
@@ -151,7 +161,7 @@
     </div>
 
     <div id="confirmModal" class="fixed inset-0 modal-overlay z-[350] hidden flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-8 text-center">
+        <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-8 text-center anim-fade-scale">
             <div class="w-16 h-16 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
                 <i class="fas fa-circle-question text-2xl"></i>
             </div>
@@ -165,7 +175,7 @@
     </div>
 
     <div id="promptModal" class="fixed inset-0 modal-overlay z-[360] hidden flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-8">
+        <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-8 anim-fade-scale">
             <div class="flex items-start justify-between mb-4">
                 <div>
                     <h3 id="promptTitle" class="text-xl font-bold text-gray-900">New File</h3>
@@ -177,6 +187,33 @@
             <div class="grid grid-cols-2 gap-3 mt-5">
                 <button onclick="hidePrompt(false)" class="w-full border border-gray-200 py-3 rounded-xl font-bold hover:bg-gray-50 transition">Cancel</button>
                 <button id="promptOkBtn" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="draftPreviewModal" class="fixed inset-0 modal-overlay z-[420] hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-6xl rounded-3xl shadow-2xl overflow-hidden border border-gray-100 anim-fade-scale">
+            <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                        <i class="fas fa-eye"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <div class="text-sm font-black text-gray-900">Preview changes</div>
+                        <div id="draftPreviewSubtitle" class="text-xs text-gray-400 font-mono truncate">Draft preview</div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="refreshDraftPreview()" class="px-3 py-2 rounded-xl border border-gray-200 text-xs font-black hover:bg-gray-50 transition">
+                        Refresh
+                    </button>
+                    <button onclick="closeDraftPreview()" class="px-3 py-2 rounded-xl bg-gray-900 text-white text-xs font-black hover:bg-black transition">
+                        Close
+                    </button>
+                </div>
+            </div>
+            <div class="bg-gray-50">
+                <iframe id="draftPreviewFrame" class="w-full h-[78vh] bg-white" sandbox="allow-scripts allow-forms allow-popups allow-modals allow-same-origin"></iframe>
             </div>
         </div>
     </div>
@@ -201,6 +238,9 @@
                 <input type="file" id="fileInput" class="hidden" multiple onchange="handleFileUpload(event)">
                 <button onclick="openSettingsPage()" class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-bold hover:bg-gray-50 transition">
                     <i class="fas fa-sliders-h mr-2"></i> Settings
+                </button>
+                <button id="previewDraftBtn" onclick="openDraftPreview()" class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-extrabold text-gray-700 hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    <i class="fas fa-eye mr-2"></i> Preview changes
                 </button>
                 <button onclick="deploySiteAction()" class="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-100">Deploy</button>
             </div>
@@ -623,14 +663,144 @@
             const store = loadDraftStore(currentProject.id);
             store[fileId] = { content: String(content ?? ''), updatedAt: Date.now() };
             saveDraftStore(currentProject.id, store);
+            updatePreviewChangesButton();
         }
 
         function clearDraftsForProject(projectId) {
             try {
                 localStorage.removeItem(getDraftStoreKey(projectId));
+                updatePreviewChangesButton();
             } catch (e) {
                 console.error('Failed to clear draft store', e);
             }
+        }
+
+        function hasDraftChanges() {
+            if (!currentProject) return false;
+            const store = loadDraftStore(currentProject.id);
+            return store && Object.keys(store).length > 0;
+        }
+
+        function updatePreviewChangesButton() {
+            const btn = document.getElementById('previewDraftBtn');
+            if (!btn) return;
+            const enabled = !!currentProject && hasDraftChanges();
+            btn.disabled = !enabled;
+        }
+
+        let __draftPreviewPage = 'index.html';
+
+        function openDraftPreview() {
+            if (!currentProject) return;
+            flushPendingDraftSave();
+            if (!hasDraftChanges()) return;
+
+            // Prefer previewing the currently selected HTML file; otherwise index.html.
+            const currentName = (currentEditingFile?.name || '').toLowerCase();
+            if (currentName.endsWith('.html') && currentName !== 'config.json') __draftPreviewPage = currentEditingFile.name;
+            else __draftPreviewPage = 'index.html';
+
+            const modal = document.getElementById('draftPreviewModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.onclick = (e) => {
+                    if (e.target === modal) closeDraftPreview();
+                };
+            }
+            refreshDraftPreview();
+        }
+
+        function closeDraftPreview() {
+            document.getElementById('draftPreviewModal')?.classList.add('hidden');
+            const frame = document.getElementById('draftPreviewFrame');
+            if (frame) frame.srcdoc = '';
+        }
+
+        function refreshDraftPreview() {
+            if (!currentProject) return;
+            const modal = document.getElementById('draftPreviewModal');
+            if (!modal || modal.classList.contains('hidden')) return;
+
+            const subtitle = document.getElementById('draftPreviewSubtitle');
+            if (subtitle) subtitle.innerText = `${currentProject.name} • ${__draftPreviewPage}`;
+
+            const frame = document.getElementById('draftPreviewFrame');
+            if (!frame) return;
+
+            const fileMap = buildDraftFileMapByName();
+            const html = fileMap.get(__draftPreviewPage.toLowerCase());
+            if (!html) {
+                frame.srcdoc = `<div style="font-family:system-ui;padding:24px;color:#111">
+                    <h2 style="margin:0 0 8px;font-size:18px">Missing page</h2>
+                    <p style="margin:0;color:#6b7280">Could not find <b>${escapeHtmlAttr(__draftPreviewPage)}</b> in your project.</p>
+                </div>`;
+                return;
+            }
+
+            frame.srcdoc = buildDraftPreviewHtml(html, fileMap);
+        }
+
+        function buildDraftFileMapByName() {
+            const out = new Map();
+            if (!currentProject) return out;
+
+            const store = loadDraftStore(currentProject.id);
+            for (const f of projectFiles) {
+                const name = String(f.name || '').toLowerCase();
+                const content = store?.[f.id]?.content ?? f.content ?? '';
+                out.set(name, String(content ?? ''));
+            }
+            return out;
+        }
+
+        function buildDraftPreviewHtml(pageHtml, fileMap) {
+            let html = String(pageHtml ?? '');
+
+            // Inline local CSS
+            html = html.replaceAll(/<link\b([^>]*?)rel=["']stylesheet["']([^>]*?)>/gi, (match) => {
+                const hrefMatch = match.match(/href=["']([^"']+)["']/i);
+                if (!hrefMatch) return match;
+                const href = hrefMatch[1];
+                if (!href || href.startsWith('http') || href.startsWith('//')) return match;
+                const css = fileMap.get(href.toLowerCase());
+                if (css == null) return match;
+                return `<style>\n${css}\n</style>`;
+            });
+
+            // Inline local JS
+            html = html.replaceAll(/<script\b([^>]*?)src=["']([^"']+)["']([^>]*)>\s*<\/script>/gi, (match, a, src) => {
+                const s = String(src || '');
+                if (!s || s.startsWith('http') || s.startsWith('//')) return match;
+                const js = fileMap.get(s.toLowerCase());
+                if (js == null) return match;
+                return `<scr` + `ipt>\n${js}\n</scr` + `ipt>`;
+            });
+
+            // Add navigation hook for local links + basic base styling.
+            const navHook = `
+<scr` + `ipt>
+(() => {
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest && e.target.closest('a');
+    if (!a) return;
+    const href = a.getAttribute('href');
+    if (!href) return;
+    if (href.startsWith('http') || href.startsWith('//') || href.startsWith('#') || href.startsWith('mailto:')) return;
+    e.preventDefault();
+    parent.postMessage({ type: 'litestack_draft_navigate', href }, '*');
+  });
+})();
+</scr` + `ipt>
+`;
+
+            const injected = `\n<!-- LiteStack draft preview -->\n${navHook}\n`;
+            if (/<\/body>/i.test(html)) {
+                html = html.replace(/<\/body>/i, injected + '</body>');
+            } else {
+                html += injected;
+            }
+
+            return html;
         }
 
         async function saveFileToSupabase(fileId, content) {
@@ -1339,6 +1509,7 @@
             document.getElementById('editorOverlay').classList.remove('hidden');
             loadProjectSettings(currentProject.id);
             document.getElementById('projectSettingsPage')?.classList.add('hidden');
+            updatePreviewChangesButton();
             
             const { data, error } = await supabaseClient
                 .from('project_files')
@@ -1363,6 +1534,7 @@
             document.getElementById('editorTabsShell').classList.add('hidden');
             document.getElementById('noFileSelected').classList.remove('hidden');
             document.getElementById('projectSettingsPanel').classList.add('hidden');
+            updatePreviewChangesButton();
             fetchProjects();
         }
 
@@ -2044,6 +2216,17 @@ ${bodyHtml}
         function escapeHtmlAttr(str) {
             return escapeHtml(str);
         }
+
+        window.addEventListener('message', (e) => {
+            const data = e?.data;
+            if (!data || data.type !== 'litestack_draft_navigate') return;
+            const href = String(data.href || '');
+            if (!href) return;
+            // Only allow navigating to local .html files
+            if (!/\.html?$/i.test(href)) return;
+            __draftPreviewPage = href;
+            refreshDraftPreview();
+        });
 
         window.onload = checkSession;
     </script>
