@@ -33,6 +33,7 @@
             <p class="text-gray-500 mb-8">This site requires a password to view.</p>
             <div class="space-y-4">
                 <input type="password" id="sitePassword" placeholder="Enter password" class="w-full px-6 py-4 bg-gray-100 rounded-2xl border-none focus:ring-2 focus:ring-blue-600 outline-none text-center font-bold">
+                <div id="passwordError" class="hidden text-sm font-bold text-red-600 bg-red-50 border border-red-100 rounded-2xl px-4 py-3"></div>
                 <button onclick="checkPassword()" class="w-full py-4 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 transition shadow-xl shadow-blue-100">Unlock Site</button>
             </div>
         </div>
@@ -133,7 +134,11 @@
                 document.getElementById('passwordOverlay').classList.add('hidden');
                 initPreview();
             } else {
-                alert("Incorrect password");
+                const err = document.getElementById('passwordError');
+                if (err) {
+                    err.innerText = "Incorrect password";
+                    err.classList.remove('hidden');
+                }
             }
         }
 
@@ -214,6 +219,12 @@
             if (description) headBits.push(`<meta name="description" content="${escapeHtmlAttr(description)}">`);
             if (themeColor) headBits.push(`<meta name="theme-color" content="${escapeHtmlAttr(themeColor)}">`);
             if (faviconUrl) headBits.push(`<link rel="icon" href="${escapeHtmlAttr(faviconUrl)}">`);
+
+            const gsc = (siteConfig.googleSiteVerification || '').trim();
+            if (gsc) headBits.push(`<meta name="google-site-verification" content="${escapeHtmlAttr(gsc)}">`);
+
+            const extraMeta = (siteConfig.extraMetaTags || '').trim();
+            if (extraMeta) headBits.push(`${extraMeta}`);
 
             if ((siteConfig.injectCss || '').trim()) {
                 headBits.push(`<style>\n${siteConfig.injectCss}\n</style>`);
