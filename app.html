@@ -372,7 +372,6 @@
 
         let monacoEditor = null;
         let monacoDisposer = null;
-        let inFlightSavePromise = null;
         let editorActiveTab = 'code'; // 'code' | 'drop'
         let editorSettings = {
             theme: 'vs-dark',
@@ -466,18 +465,59 @@
             return 'plaintext';
         }
 
-        async function saveFileNow(fileId, content) {
+        function getDraftStoreKey(projectId) {
+            return `litestack_drafts_${projectId}`;
+        }
+
+        function loadDraftStore(projectId) {
+            try {
+                const raw = localStorage.getItem(getDraftStoreKey(projectId));
+                if (!raw) return {};
+                const parsed = JSON.parse(raw);
+                if (!parsed || typeof parsed !== 'object') return {};
+                return parsed;
+            } catch (e) {
+                console.error('Failed to load draft store', e);
+                return {};
+            }
+        }
+
+        function saveDraftStore(projectId, store) {
+            try {
+                localStorage.setItem(getDraftStoreKey(projectId), JSON.stringify(store || {}));
+            } catch (e) {
+                console.error('Failed to save draft store', e);
+            }
+        }
+
+        function getDraftForFile(fileId) {
+            if (!currentProject || !fileId) return null;
+            const store = loadDraftStore(currentProject.id);
+            return store?.[fileId]?.content ?? null;
+        }
+
+        function setDraftForFile(fileId, content) {
+            if (!currentProject || !fileId) return;
+            const store = loadDraftStore(currentProject.id);
+            store[fileId] = { content: String(content ?? ''), updatedAt: Date.now() };
+            saveDraftStore(currentProject.id, store);
+        }
+
+        function clearDraftsForProject(projectId) {
+            try {
+                localStorage.removeItem(getDraftStoreKey(projectId));
+            } catch (e) {
+                console.error('Failed to clear draft store', e);
+            }
+        }
+
+        async function saveFileToSupabase(fileId, content) {
             if (!fileId) return;
-            document.getElementById('editorStatus').innerText = "Saving draft...";
             const { error } = await supabaseClient
                 .from('project_files')
                 .update({ content, updated_at: new Date() })
                 .eq('id', fileId);
-            if (error) {
-                document.getElementById('editorStatus').innerText = "Save failed";
-                throw error;
-            }
-            document.getElementById('editorStatus').innerText = "Draft saved";
+            if (error) throw error;
         }
 
         function scheduleAutosave() {
@@ -490,14 +530,13 @@
             saveTimeout = setTimeout(() => {
                 if (!currentEditingFile || currentEditingFile.id !== fileId) return;
                 const latestContent = currentEditingFile.content ?? '';
-                inFlightSavePromise = saveFileNow(fileId, latestContent).catch((err) => {
-                    console.error('Autosave failed', err);
-                });
+                setDraftForFile(fileId, latestContent);
+                document.getElementById('editorStatus').innerText = "Draft saved (local)";
             }, editorSettings.autoSaveDelay ?? 1000);
         }
 
-        async function flushPendingDraftSave() {
-            // Pull latest content from Monaco right before save/deploy.
+        function flushPendingDraftSave() {
+            // Pull latest content from Monaco right before deploy.
             if (currentEditingFile && monacoEditor) {
                 try {
                     currentEditingFile.content = monacoEditor.getValue();
@@ -511,17 +550,7 @@
             if (saveTimeout) {
                 clearTimeout(saveTimeout);
                 saveTimeout = null;
-                inFlightSavePromise = saveFileNow(currentEditingFile.id, currentEditingFile.content ?? '').catch((err) => {
-                    console.error('Flush save failed', err);
-                });
-            }
-
-            if (inFlightSavePromise) {
-                try {
-                    await inFlightSavePromise;
-                } finally {
-                    inFlightSavePromise = null;
-                }
+                setDraftForFile(currentEditingFile.id, currentEditingFile.content ?? '');
             }
         }
 
@@ -711,12 +740,14 @@
                     .insert([{ 
                         project_id: currentProject.id, 
                         name: 'config.json', 
-                        content: JSON.stringify(defaultConfig, null, 2) 
+                        content: '' 
                     }])
                     .select()
                     .single();
                 
                 if (!error) {
+                    data.content = JSON.stringify(defaultConfig, null, 2);
+                    setDraftForFile(data.id, data.content);
                     projectFiles.push(data);
                     renderFileList();
                     editFile(data.id);
@@ -746,7 +777,7 @@
             const content = starterContentByName[filename] ?? '';
             const { data, error } = await supabaseClient
                 .from('project_files')
-                .insert([{ project_id: currentProject.id, name: filename, content }])
+                .insert([{ project_id: currentProject.id, name: filename, content: '' }])
                 .select()
                 .single();
 
@@ -755,6 +786,8 @@
                 return;
             }
 
+            data.content = content;
+            setDraftForFile(data.id, content);
             projectFiles.push(data);
             renderFileList();
             editFile(data.id);
@@ -926,6 +959,8 @@
             const placeholder = document.getElementById('noFileSelected');
             const monacoContainer = document.getElementById('monacoEditor');
             const tabsShell = document.getElementById('editorTabsShell');
+            const draft = getDraftForFile(file?.id);
+            if (draft !== null) file.content = draft;
             
             placeholder.classList.add('hidden');
             tabsShell.classList.remove('hidden');
@@ -958,23 +993,34 @@
             for (let file of files) {
                 const reader = new FileReader();
                 reader.onload = async (e) => {
+                    const textContent = String(e.target.result ?? '');
+                    const existing = projectFiles.find(f => f.name.toLowerCase() === file.name.toLowerCase());
+
+                    if (existing) {
+                        existing.content = textContent;
+                        setDraftForFile(existing.id, textContent);
+                        renderFileList();
+                        if (files.length === 1) editFile(existing.id);
+                        return;
+                    }
+
+                    // Create the file record, but keep content local until Deploy.
                     const { data, error } = await supabaseClient
                         .from('project_files')
-                        .upsert([{ 
-                            project_id: currentProject.id, 
-                            name: file.name, 
-                            content: e.target.result 
-                        }], { onConflict: 'project_id, name' })
+                        .insert([{ project_id: currentProject.id, name: file.name, content: '' }])
                         .select()
                         .single();
-                    
-                    if (!error) {
-                        const existingIdx = projectFiles.findIndex(f => f.name === file.name);
-                        if (existingIdx > -1) projectFiles[existingIdx] = data;
-                        else projectFiles.push(data);
-                        renderFileList();
-                        if (files.length === 1) editFile(data.id);
+
+                    if (error) {
+                        showError("Upload Failed", error.message);
+                        return;
                     }
+
+                    data.content = textContent;
+                    setDraftForFile(data.id, textContent);
+                    projectFiles.push(data);
+                    renderFileList();
+                    if (files.length === 1) editFile(data.id);
                 };
                 reader.readAsText(file);
             }
@@ -1001,9 +1047,28 @@
             btn.disabled = true;
 
             try {
-                await flushPendingDraftSave();
+                flushPendingDraftSave();
             } catch (e) {
                 showError("Save Required", "We couldn't save your latest draft changes. Please try again.");
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                return;
+            }
+
+            // Push local drafts to Supabase (publish)
+            try {
+                document.getElementById('editorStatus').innerText = "Publishing...";
+                const store = loadDraftStore(currentProject.id);
+                for (const f of projectFiles) {
+                    const content = store?.[f.id]?.content ?? f.content ?? '';
+                    await saveFileToSupabase(f.id, content);
+                    f.content = content;
+                }
+                clearDraftsForProject(currentProject.id);
+                document.getElementById('editorStatus').innerText = "Published";
+            } catch (e) {
+                console.error('Publish failed', e);
+                showError("Deployment Failed", e?.message || "Couldn't publish files. Please try again.");
                 btn.innerHTML = originalText;
                 btn.disabled = false;
                 return;
