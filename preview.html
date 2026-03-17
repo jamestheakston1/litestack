@@ -58,7 +58,6 @@
         const pageName = urlParams.get('page') || 'index.html';
 
         let siteConfig = {
-            title: "",
             description: "",
             faviconUrl: "",
             themeColor: "#2563eb",
@@ -103,6 +102,7 @@
                 }
             }
 
+            // Apply outer page head (favicon/themeColor), then set title from page HTML.
             applyOuterPageHead();
 
             if (!isDeviceAllowed()) {
@@ -121,9 +121,6 @@
         }
 
         function applyOuterPageHead() {
-            const title = (siteConfig.title || '').trim();
-            document.title = title ? title : 'LiteStack | Preview';
-
             const themeColor = (siteConfig.themeColor || '').trim();
             if (themeColor) {
                 let meta = document.querySelector('meta[name="theme-color"]');
@@ -145,6 +142,19 @@
                 }
                 link.setAttribute('href', faviconUrl);
             }
+        }
+
+        function extractTitleFromHtml(html) {
+            const s = String(html ?? '');
+            const match = s.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+            if (!match) return '';
+            // Strip tags inside title if any
+            return String(match[1] ?? '').replace(/<[^>]+>/g, '').trim();
+        }
+
+        function applyOuterTitleFromHtml(html) {
+            const title = extractTitleFromHtml(html);
+            document.title = title || 'LiteStack | Preview';
         }
 
         function isDeviceAllowed() {
@@ -200,6 +210,7 @@
                 const custom404 = files.find(f => f.name.toLowerCase() === '404.html');
                 if (custom404) {
                     writeToFrame(custom404.content);
+                    applyOuterTitleFromHtml(custom404.content);
                     finishLoading();
                 } else {
                     window.location.href = `/errors/default404.html?site=${siteName}`;
@@ -208,6 +219,7 @@
             }
 
             writeToFrame(targetFile.content);
+            applyOuterTitleFromHtml(targetFile.content);
             finishLoading();
         }
 
@@ -247,12 +259,10 @@
             const html = String(rawHtml ?? '');
             const headBits = [];
 
-            const title = (siteConfig.title || '').trim();
             const description = (siteConfig.description || '').trim();
             const themeColor = (siteConfig.themeColor || '').trim();
             const faviconUrl = (siteConfig.faviconUrl || '').trim();
 
-            if (title) headBits.push(`<title>${escapeHtmlAttr(title)}</title>`);
             if (description) headBits.push(`<meta name="description" content="${escapeHtmlAttr(description)}">`);
             if (themeColor) headBits.push(`<meta name="theme-color" content="${escapeHtmlAttr(themeColor)}">`);
             if (faviconUrl) headBits.push(`<link rel="icon" href="${escapeHtmlAttr(faviconUrl)}">`);
