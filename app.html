@@ -1054,13 +1054,13 @@
 
             const isDrop = editorActiveTab === 'drop';
 
-            tabCodeBtn.className = `px-3 py-1.5 rounded-lg text-sm font-extrabold transition ${isDrop ? 'bg-gray-50 text-gray-700 hover:bg-gray-100' : 'bg-blue-600 text-white'}`;
-            tabDropBtn.className = `px-3 py-1.5 rounded-lg text-sm font-extrabold transition ${isDrop ? 'bg-blue-600 text-white' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'}`;
+            if (tabCodeBtn) tabCodeBtn.className = `px-3 py-1.5 rounded-lg text-sm font-extrabold transition ${isDrop ? 'bg-gray-50 text-gray-700 hover:bg-gray-100' : 'bg-blue-600 text-white'}`;
+            if (tabDropBtn) tabDropBtn.className = `px-3 py-1.5 rounded-lg text-sm font-extrabold transition ${isDrop ? 'bg-blue-600 text-white' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'}`;
 
-            codePanel.classList.toggle('hidden', isDrop);
-            dropPanel.classList.toggle('hidden', !isDrop);
-            syncBtn.classList.toggle('hidden', !isDrop);
-            resetBtn.classList.toggle('hidden', !isDrop);
+            if (codePanel) codePanel.classList.toggle('hidden', isDrop);
+            if (dropPanel) dropPanel.classList.toggle('hidden', !isDrop);
+            if (syncBtn) syncBtn.classList.toggle('hidden', !isDrop);
+            if (resetBtn) resetBtn.classList.toggle('hidden', !isDrop);
 
             if (isDrop) dropmeLoadForCurrentFile();
         }
@@ -1154,7 +1154,9 @@
         function dropmeInsertBlock(partial, index = null) {
             const st = dropmeGetState();
             if (!st) return;
-            const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2);
+            const id = (window.crypto && typeof window.crypto.randomUUID === 'function')
+                ? window.crypto.randomUUID()
+                : String(Date.now()) + Math.random().toString(16).slice(2);
 
             const base = {
                 id,
@@ -1484,7 +1486,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${safeTitle}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <scr` + `ipt src="https://cdn.tailwindcss.com"></scr` + `ipt>
   </head>
   <body class="bg-white text-slate-900">
 ${bodyHtml}
