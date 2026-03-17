@@ -103,6 +103,8 @@
                 }
             }
 
+            applyOuterPageHead();
+
             if (!isDeviceAllowed()) {
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('restrictionOverlay').classList.remove('hidden');
@@ -116,6 +118,33 @@
             }
 
             renderPage(files);
+        }
+
+        function applyOuterPageHead() {
+            const title = (siteConfig.title || '').trim();
+            document.title = title ? title : 'LiteStack | Preview';
+
+            const themeColor = (siteConfig.themeColor || '').trim();
+            if (themeColor) {
+                let meta = document.querySelector('meta[name="theme-color"]');
+                if (!meta) {
+                    meta = document.createElement('meta');
+                    meta.setAttribute('name', 'theme-color');
+                    document.head.appendChild(meta);
+                }
+                meta.setAttribute('content', themeColor);
+            }
+
+            const faviconUrl = (siteConfig.faviconUrl || '').trim();
+            if (faviconUrl) {
+                let link = document.querySelector('link[rel="icon"]');
+                if (!link) {
+                    link = document.createElement('link');
+                    link.setAttribute('rel', 'icon');
+                    document.head.appendChild(link);
+                }
+                link.setAttribute('href', faviconUrl);
+            }
         }
 
         function isDeviceAllowed() {
@@ -153,12 +182,25 @@
                 loadingText.innerText = siteConfig.loadingText;
             }
 
+            function finishLoading() {
+                if (!siteConfig.showLoader) {
+                    frame.classList.remove('hidden');
+                    return;
+                }
+                setTimeout(() => {
+                    loading.style.opacity = '0';
+                    frame.classList.remove('hidden');
+                    setTimeout(() => loading.style.display = 'none', 500);
+                }, 300);
+            }
+
             const targetFile = files.find(f => f.name.toLowerCase() === pageName.toLowerCase());
             
             if (!targetFile) {
                 const custom404 = files.find(f => f.name.toLowerCase() === '404.html');
                 if (custom404) {
                     writeToFrame(custom404.content);
+                    finishLoading();
                 } else {
                     window.location.href = `/errors/default404.html?site=${siteName}`;
                 }
@@ -166,12 +208,7 @@
             }
 
             writeToFrame(targetFile.content);
-            
-            setTimeout(() => {
-                loading.style.opacity = '0';
-                frame.classList.remove('hidden');
-                setTimeout(() => loading.style.display = 'none', 500);
-            }, 500);
+            finishLoading();
         }
 
         function writeToFrame(content) {
