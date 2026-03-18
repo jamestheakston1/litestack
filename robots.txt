@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /preview.html
+Disallow: /config.json
+Disallow: /projectlimit.html
+Disallow: /errors.html
+Disallow: /errors/nosite.html
+Disallow: /errors/default404.html
+
+Sitemap: https://litestack.pages.dev/sitemap.xml
