@@ -293,16 +293,34 @@
                         I understand my access code will be stored locally and I must manually install on other devices
                     </label>
                 </div>
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-2">Bitly Access Code</label>
-                    <input type="password" id="bitlyAccessCode" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter your Bitly access code" oninput="updateBitlyProgress()">
+                <div id="bitlyAccessStep" class="hidden space-y-3">
+                    <div class="text-sm text-gray-600">
+                        <p class="font-semibold">Where to find your Bitly access code</p>
+                        <p class="mt-1">1. Log into your Bitly account in a new tab.</p>
+                        <p>2. Go to <span class="font-mono">Settings → API</span> (or Profile → Settings → API).</p>
+                        <p>3. Create or copy your personal access token.</p>
+                        <p>4. Paste it below. We’ll encrypt it and store it only on this device.</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">Bitly Access Code</label>
+                        <input type="password" id="bitlyAccessCode" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Paste your Bitly access code" oninput="updateBitlyProgress()">
+                    </div>
+                </div>
+                <div id="bitlyEncryptingState" class="hidden flex items-center space-x-3 text-sm text-gray-700">
+                    <div class="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin flex items-center justify-center">
+                        <i class="fas fa-lock text-blue-600"></i>
+                    </div>
+                    <div>
+                        <p class="font-semibold">Encrypting Access Code</p>
+                        <p class="text-xs text-gray-500">We’re securely encrypting your Bitly access code before saving it locally.</p>
+                    </div>
                 </div>
                 <div class="flex space-x-3">
                     <button onclick="closeBitlySetupModal()" class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300 transition">
                         Cancel
                     </button>
                     <button onclick="saveBitlyIntegration()" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition" id="saveBitlyBtn" disabled>
-                        Connect
+                        Next
                     </button>
                 </div>
             </div>
@@ -1920,6 +1938,7 @@
         }
 
         // Integrations functionality
+        let bitlySetupStep = 1;
         function openIntegrationsModal() {
             // Check if Bitly is already integrated
             const bitlyData = JSON.parse(localStorage.getItem('litestack_bitly_integration') || '{}');
@@ -1976,6 +1995,10 @@
             document.getElementById('bitlyAccessCode').value = '';
             document.getElementById('bitlyProgressBar').style.width = '20%';
             document.getElementById('saveBitlyBtn').disabled = true;
+            document.getElementById('bitlyAccessStep').classList.add('hidden');
+            document.getElementById('bitlyEncryptingState').classList.add('hidden');
+            document.getElementById('saveBitlyBtn').innerText = 'Next';
+            bitlySetupStep = 1;
             document.getElementById('bitlySetupModal').classList.remove('hidden');
             document.getElementById('bitlySetupModal').classList.add('active');
         }
@@ -1994,18 +2017,23 @@
             const saveBtn = document.getElementById('saveBitlyBtn');
             const progressBar = document.getElementById('bitlyProgressBar');
             
-            // Calculate progress
+            // Calculate progress based on current step
             let progress = 20; // Start at 20%
-            if (termsAgreed) progress += 25;
-            if (localStorageAgreed) progress += 25;
-            if (accessCode.length > 0) progress += 30;
+            if (termsAgreed) progress += 30;
+            if (localStorageAgreed) progress += 30;
+            if (bitlySetupStep >= 2 && accessCode.length > 0) progress += 20;
             
             // Animate progress bar
             progressBar.style.width = progress + '%';
             
             // Enable/disable save button
-            const allAgreed = termsAgreed && localStorageAgreed && accessCode.length > 0;
-            saveBtn.disabled = !allAgreed;
+            if (bitlySetupStep === 1) {
+                // First step: only agreements required
+                saveBtn.disabled = !(termsAgreed && localStorageAgreed);
+            } else if (bitlySetupStep === 2) {
+                // Second step: access code required
+                saveBtn.disabled = !(accessCode.length > 0);
+            }
         }
 
         function openBitlyTermsModal() {
@@ -2020,38 +2048,63 @@
             }, 300);
         }
 
-        function saveBitlyIntegration() {
-            const accessCode = document.getElementById('bitlyAccessCode').value.trim();
+        async function saveBitlyIntegration() {
             const termsAgreed = document.getElementById('bitlyTermsAgreement').checked;
             const localStorageAgreed = document.getElementById('bitlyLocalStorageAgreement').checked;
+            const accessCodeInput = document.getElementById('bitlyAccessCode');
+            const accessCode = accessCodeInput.value.trim();
+            const saveBtn = document.getElementById('saveBitlyBtn');
+            const encryptingState = document.getElementById('bitlyEncryptingState');
 
-            if (!accessCode) {
-                showError('Access Code Required', 'Please enter your Bitly access code.');
+            if (bitlySetupStep === 1) {
+                if (!termsAgreed || !localStorageAgreed) {
+                    showError('Agreement Required', 'Please agree to the terms and local storage policy.');
+                    return;
+                }
+                // Move to access code step
+                bitlySetupStep = 2;
+                document.getElementById('bitlyAccessStep').classList.remove('hidden');
+                updateBitlyProgress();
+                saveBtn.innerText = 'Next';
+                saveBtn.disabled = accessCode.length === 0;
                 return;
             }
 
-            if (!termsAgreed || !localStorageAgreed) {
-                showError('Agreement Required', 'Please agree to the terms and local storage policy.');
-                return;
-            }
+            if (bitlySetupStep === 2) {
+                if (!accessCode) {
+                    showError('Access Code Required', 'Please enter your Bitly access code.');
+                    accessCodeInput.focus();
+                    return;
+                }
 
-            // Store Bitly integration data
-            const bitlyData = {
-                accessCode: accessCode,
-                agreedToTerms: true,
-                agreedToLocalStorage: true,
-                createdAt: Date.now()
-            };
+                bitlySetupStep = 3;
+                saveBtn.disabled = true;
+                encryptingState.classList.remove('hidden');
 
-            try {
-                localStorage.setItem('litestack_bitly_integration', JSON.stringify(bitlyData));
-                closeBitlySetupModal();
-                showSuccess('Bitly Integration Added', 'You can now use the Shorten URL feature.');
-                
-                // Add the Shorten URL button to the editor
-                addShortenUrlButton();
-            } catch (e) {
-                showError('Storage Error', 'Failed to save integration data. Please try again.');
+                try {
+                    const encrypted = await encryptAccessCode(accessCode);
+
+                    // Store Bitly integration data (encrypted)
+                    const bitlyData = {
+                        encryptedAccessCode: encrypted,
+                        agreedToTerms: true,
+                        agreedToLocalStorage: true,
+                        createdAt: Date.now()
+                    };
+
+                    localStorage.setItem('litestack_bitly_integration', JSON.stringify(bitlyData));
+                    closeBitlySetupModal();
+                    showSuccess('Bitly Integration Added', 'You can now use the Shorten URL feature.');
+                    
+                    // Add the Shorten URL button to the editor
+                    addShortenUrlButton();
+                } catch (e) {
+                    console.error('Failed to encrypt Bitly access code', e);
+                    showError('Encryption Error', 'Failed to encrypt and save your access code. Please try again.');
+                    bitlySetupStep = 2;
+                    encryptingState.classList.add('hidden');
+                    saveBtn.disabled = false;
+                }
             }
         }
 
@@ -2190,14 +2243,85 @@
             }
         }
 
+        async function getBitlyEncryptionKey() {
+            const enc = new TextEncoder();
+            const passphrase = 'litestack-bitly-v1';
+            const salt = enc.encode('bitly-salt');
+
+            const keyMaterial = await crypto.subtle.importKey(
+                'raw',
+                enc.encode(passphrase),
+                { name: 'PBKDF2' },
+                false,
+                ['deriveKey']
+            );
+
+            return crypto.subtle.deriveKey(
+                {
+                    name: 'PBKDF2',
+                    salt,
+                    iterations: 100000,
+                    hash: 'SHA-256'
+                },
+                keyMaterial,
+                { name: 'AES-GCM', length: 256 },
+                false,
+                ['encrypt', 'decrypt']
+            );
+        }
+
+        async function encryptAccessCode(plain) {
+            const key = await getBitlyEncryptionKey();
+            const enc = new TextEncoder();
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+            const encoded = enc.encode(plain);
+            const cipher = await crypto.subtle.encrypt(
+                { name: 'AES-GCM', iv },
+                key,
+                encoded
+            );
+
+            const cipherBytes = new Uint8Array(cipher);
+            const combined = new Uint8Array(iv.length + cipherBytes.length);
+            combined.set(iv, 0);
+            combined.set(cipherBytes, iv.length);
+
+            let binary = '';
+            combined.forEach(b => binary += String.fromCharCode(b));
+            return btoa(binary);
+        }
+
+        async function decryptAccessCode(encrypted) {
+            const key = await getBitlyEncryptionKey();
+            const binary = atob(encrypted);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+
+            const iv = bytes.slice(0, 12);
+            const cipherBytes = bytes.slice(12);
+
+            const decrypted = await crypto.subtle.decrypt(
+                { name: 'AES-GCM', iv },
+                key,
+                cipherBytes
+            );
+
+            const dec = new TextDecoder();
+            return dec.decode(decrypted);
+        }
+
         async function callBitlyApi(longUrl, customBacklink = '') {
             const bitlyData = JSON.parse(localStorage.getItem('litestack_bitly_integration') || '{}');
-            if (!bitlyData || !bitlyData.accessCode) {
+            if (!bitlyData || !bitlyData.encryptedAccessCode) {
                 throw new Error('Bitly integration not configured');
             }
 
+            const accessCode = await decryptAccessCode(bitlyData.encryptedAccessCode);
+
             const headers = {
-                'Authorization': `Bearer ${bitlyData.accessCode}`,
+                'Authorization': `Bearer ${accessCode}`,
                 'Content-Type': 'application/json'
             };
 
