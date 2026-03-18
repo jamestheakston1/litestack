@@ -265,7 +265,7 @@
         </div>
     </div>
 
-    <div id="bitlySetupModal" class="fixed inset-0 modal-overlay z-[700] hidden flex items-center justify-center p-4">
+    <div id="bitlySetupModal" class="fixed inset-0 modal-overlay z-[850] hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl p-8 anim-fade-scale">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-xl font-bold text-gray-900">Welcome to Bitly Integration</h3>
@@ -276,7 +276,7 @@
             <div class="w-full bg-gray-200 rounded-full h-2 mb-4 overflow-hidden">
                 <div id="bitlyProgressBar" class="bg-blue-600 h-2 rounded-full transition-all duration-500 ease-out" style="width: 20%"></div>
             </div>
-            <div class="space-y-6">
+            <div class="space-y-6" id="bitlyStep1">
                 <div class="text-sm text-gray-600">
                     <p>Connect your Bitly account to shorten URLs directly from your project dashboard.</p>
                     <p class="mt-2">This integration allows you to create short, trackable links for your projects.</p>
@@ -293,28 +293,6 @@
                         I understand my access code will be stored locally and I must manually install on other devices
                     </label>
                 </div>
-                <div id="bitlyAccessStep" class="hidden space-y-3">
-                    <div class="text-sm text-gray-600">
-                        <p class="font-semibold">Where to find your Bitly access code</p>
-                        <p class="mt-1">1. Log into your Bitly account in a new tab.</p>
-                        <p>2. Go to <span class="font-mono">Settings → API</span> (or Profile → Settings → API).</p>
-                        <p>3. Create or copy your personal access token.</p>
-                        <p>4. Paste it below. We’ll encrypt it and store it only on this device.</p>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">Bitly Access Code</label>
-                        <input type="password" id="bitlyAccessCode" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Paste your Bitly access code" oninput="updateBitlyProgress()">
-                    </div>
-                </div>
-                <div id="bitlyEncryptingState" class="hidden flex items-center space-x-3 text-sm text-gray-700">
-                    <div class="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin flex items-center justify-center">
-                        <i class="fas fa-lock text-blue-600"></i>
-                    </div>
-                    <div>
-                        <p class="font-semibold">Encrypting Access Code</p>
-                        <p class="text-xs text-gray-500">We’re securely encrypting your Bitly access code before saving it locally.</p>
-                    </div>
-                </div>
                 <div class="flex space-x-3">
                     <button onclick="closeBitlySetupModal()" class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300 transition">
                         Cancel
@@ -322,6 +300,38 @@
                     <button onclick="saveBitlyIntegration()" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition" id="saveBitlyBtn" disabled>
                         Next
                     </button>
+                </div>
+            </div>
+            <div class="space-y-6 hidden" id="bitlyStep2">
+                <div class="text-sm text-gray-600">
+                    <p class="font-semibold">Where to find your Bitly access code</p>
+                    <p class="mt-1">1. Log into your Bitly account in a new tab.</p>
+                    <p>2. Go to <span class="font-mono">Settings → API</span> (or Profile → Settings → API).</p>
+                    <p>3. Create or copy your personal access token.</p>
+                    <p>4. Paste it below. We’ll encrypt it and store it only on this device.</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Bitly Access Code</label>
+                    <input type="password" id="bitlyAccessCode" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Paste your Bitly access code" oninput="updateBitlyProgress()">
+                </div>
+                <div class="flex space-x-3">
+                    <button onclick="closeBitlySetupModal()" class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300 transition">
+                        Cancel
+                    </button>
+                    <button onclick="saveBitlyIntegration()" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition" id="bitlyAccessNextBtn" disabled>
+                        Next
+                    </button>
+                </div>
+            </div>
+            <div class="space-y-6 hidden" id="bitlyStep3">
+                <div id="bitlyEncryptingState" class="flex flex-col items-center justify-center text-sm text-gray-700 py-8">
+                    <div class="w-20 h-20 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin flex items-center justify-center mb-4">
+                        <i class="fas fa-lock text-blue-600 text-2xl"></i>
+                    </div>
+                    <div class="text-center">
+                        <p class="font-semibold">Encrypting Access Code</p>
+                        <p class="text-xs text-gray-500 mt-1">We’re securely encrypting your Bitly access code before saving it locally.</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1995,8 +2005,9 @@
             document.getElementById('bitlyAccessCode').value = '';
             document.getElementById('bitlyProgressBar').style.width = '20%';
             document.getElementById('saveBitlyBtn').disabled = true;
-            document.getElementById('bitlyAccessStep').classList.add('hidden');
-            document.getElementById('bitlyEncryptingState').classList.add('hidden');
+            document.getElementById('bitlyStep1').classList.remove('hidden');
+            document.getElementById('bitlyStep2').classList.add('hidden');
+            document.getElementById('bitlyStep3').classList.add('hidden');
             document.getElementById('saveBitlyBtn').innerText = 'Next';
             bitlySetupStep = 1;
             document.getElementById('bitlySetupModal').classList.remove('hidden');
@@ -2054,7 +2065,9 @@
             const accessCodeInput = document.getElementById('bitlyAccessCode');
             const accessCode = accessCodeInput.value.trim();
             const saveBtn = document.getElementById('saveBitlyBtn');
-            const encryptingState = document.getElementById('bitlyEncryptingState');
+            const step1 = document.getElementById('bitlyStep1');
+            const step2 = document.getElementById('bitlyStep2');
+            const step3 = document.getElementById('bitlyStep3');
 
             if (bitlySetupStep === 1) {
                 if (!termsAgreed || !localStorageAgreed) {
@@ -2063,7 +2076,8 @@
                 }
                 // Move to access code step
                 bitlySetupStep = 2;
-                document.getElementById('bitlyAccessStep').classList.remove('hidden');
+                step1.classList.add('hidden');
+                step2.classList.remove('hidden');
                 updateBitlyProgress();
                 saveBtn.innerText = 'Next';
                 saveBtn.disabled = accessCode.length === 0;
@@ -2079,10 +2093,14 @@
 
                 bitlySetupStep = 3;
                 saveBtn.disabled = true;
-                encryptingState.classList.remove('hidden');
+                step2.classList.add('hidden');
+                step3.classList.remove('hidden');
 
                 try {
-                    const encrypted = await encryptAccessCode(accessCode);
+                    const [encrypted] = await Promise.all([
+                        encryptAccessCode(accessCode),
+                        new Promise(resolve => setTimeout(resolve, 3000))
+                    ]);
 
                     // Store Bitly integration data (encrypted)
                     const bitlyData = {
@@ -2102,7 +2120,8 @@
                     console.error('Failed to encrypt Bitly access code', e);
                     showError('Encryption Error', 'Failed to encrypt and save your access code. Please try again.');
                     bitlySetupStep = 2;
-                    encryptingState.classList.add('hidden');
+                    step3.classList.add('hidden');
+                    step2.classList.remove('hidden');
                     saveBtn.disabled = false;
                 }
             }
