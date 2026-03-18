@@ -95,6 +95,11 @@
         </div>
     </div>
 
+    <button id="aiChatFab" onclick="toggleAiChatFloating()" class="hidden fixed bottom-5 right-5 z-[950] bg-indigo-600 text-white rounded-full shadow-2xl px-4 py-2.5 text-xs font-bold items-center gap-2 hover:bg-indigo-700 transition transform origin-bottom-right scale-0">
+        <i class="fas fa-comments text-sm"></i>
+        AI Chat
+    </button>
+
     <div id="configHelpModal" class="fixed inset-0 modal-overlay z-[400] hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl p-8 relative">
             <button onclick="closeConfigHelp()" class="absolute top-6 right-6 text-gray-400 hover:text-black transition">
@@ -224,41 +229,61 @@
     </div>
 
     <div id="integrationsModal" class="fixed inset-0 modal-overlay z-[600] hidden flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl p-8 text-center anim-fade-scale">
+        <div class="bg-white w-full max-w-2xl rounded-3xl shadow-2xl p-8 anim-fade-scale">
             <div class="flex items-center justify-between mb-6">
-                <h3 class="text-2xl font-bold text-gray-900">Integrations</h3>
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-900">Integrations</h3>
+                    <p class="text-gray-500 text-sm mt-1">Connect addons to power up your LiteStack projects.</p>
+                </div>
                 <button onclick="closeIntegrationsModal()" class="text-gray-400 hover:text-black transition">
                     <i class="fas fa-times text-lg"></i>
                 </button>
             </div>
-            <p class="text-gray-500 mb-8">Connect third-party services to enhance your projects.</p>
-            <div class="space-y-4">
-                <div class="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <img src="https://litestack.pages.dev/bitly.jpg" alt="Bitly" class="w-10 h-10 rounded-lg">
-                            <div class="text-left">
+            <div class="grid md:grid-cols-2 gap-4">
+                <div class="p-5 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col justify-between">
+                    <div class="flex items-start gap-3">
+                        <img src="https://litestack.pages.dev/bitly.jpg" alt="Bitly" class="w-10 h-10 rounded-lg">
+                        <div>
+                            <div class="flex items-center gap-2">
                                 <div class="font-bold text-gray-900">Bitly</div>
-                                <div class="text-sm text-gray-500">URL shortening service</div>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700">Free</span>
                             </div>
+                            <div class="text-xs text-gray-500 mt-1">Shorten and track URLs for your sites.</div>
                         </div>
-                        <button id="bitlyAddBtn" onclick="addBitlyIntegration()" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition">
-                            Add
-                        </button>
+                    </div>
+                    <div class="mt-4 flex items-center justify-between">
+                        <div class="text-[11px] text-gray-400 font-mono">Status: <span id="bitlyStatusLabel" class="text-red-500">Not installed</span></div>
+                        <div class="space-x-2">
+                            <button id="bitlyRemoveBtn" onclick="removeBitlyIntegration()" class="px-3 py-1.5 border border-gray-200 text-gray-600 rounded-lg text-xs font-bold hover:bg-gray-100 transition hidden">
+                                Remove
+                            </button>
+                            <button id="bitlyAddBtn" onclick="addBitlyIntegration()" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition text-sm">
+                                Add
+                            </button>
+                        </div>
                     </div>
                 </div>
-                <div class="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <img src="https://litestack.pages.dev/gemini.png" alt="Google Gemini" class="w-10 h-10 rounded-lg">
-                            <div class="text-left">
+                <div class="p-5 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col justify-between">
+                    <div class="flex items-start gap-3">
+                        <img src="https://litestack.pages.dev/gemini.png" alt="Google Gemini" class="w-10 h-10 rounded-lg">
+                        <div>
+                            <div class="flex items-center gap-2">
                                 <div class="font-bold text-gray-900">Google Gemini</div>
-                                <div class="text-sm text-gray-500">Coming soon</div>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700">AI</span>
                             </div>
+                            <div class="text-xs text-gray-500 mt-1">Chat with AI to help design and edit your site.</div>
                         </div>
-                        <button class="px-4 py-2 bg-gray-300 text-gray-500 rounded-lg font-bold cursor-not-allowed" disabled>
-                            Coming soon
-                        </button>
+                    </div>
+                    <div class="mt-4 flex items-center justify-between">
+                        <div class="text-[11px] text-gray-400 font-mono">Status: <span id="geminiStatusLabel" class="text-red-500">Not installed</span></div>
+                        <div class="space-x-2">
+                            <button id="geminiRemoveBtn" onclick="removeGeminiIntegration()" class="px-3 py-1.5 border border-gray-200 text-gray-600 rounded-lg text-xs font-bold hover:bg-gray-100 transition hidden">
+                                Remove
+                            </button>
+                            <button id="geminiAddBtn" onclick="addGeminiIntegration()" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition text-sm">
+                                Add
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -337,7 +362,7 @@
         </div>
     </div>
 
-    <div id="bitlyTermsModal" class="fixed inset-0 modal-overlay z-[800] hidden flex items-center justify-center p-4">
+    <div id="bitlyTermsModal" class="fixed inset-0 modal-overlay z-[880] hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl p-8 anim-fade-scale">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-xl font-bold text-gray-900">Bitly Integration Terms</h3>
@@ -363,6 +388,110 @@
             </div>
             <div class="mt-6 flex justify-end">
                 <button onclick="closeBitlyTermsModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition">
+                    I Understand
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="geminiSetupModal" class="fixed inset-0 modal-overlay z-[850] hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl p-8 anim-fade-scale">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-gray-900">Connect Google Gemini</h3>
+                <button onclick="closeGeminiSetupModal()" class="text-gray-400 hover:text-black transition">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2 mb-4 overflow-hidden">
+                <div id="geminiProgressBar" class="bg-indigo-600 h-2 rounded-full transition-all duration-500 ease-out" style="width: 20%"></div>
+            </div>
+            <div class="space-y-6" id="geminiStep1">
+                <div class="text-sm text-gray-600">
+                    <p>Use Gemini to get AI help while you design and edit your LiteStack site.</p>
+                    <p class="mt-2">You control your API key and it stays on this device.</p>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <input type="checkbox" id="geminiTermsAgreement" class="rounded border-gray-300" onchange="updateGeminiProgress()">
+                    <label for="geminiTermsAgreement" class="text-sm text-gray-700">
+                        I agree to the <span class="text-indigo-600 hover:text-indigo-700 cursor-pointer underline" onclick="openGeminiTermsModal()">integration terms</span>
+                    </label>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <input type="checkbox" id="geminiLocalStorageAgreement" class="rounded border-gray-300" onchange="updateGeminiProgress()">
+                    <label for="geminiLocalStorageAgreement" class="text-sm text-gray-700">
+                        I understand my API key will be encrypted and stored locally only
+                    </label>
+                </div>
+                <div class="flex space-x-3">
+                    <button onclick="closeGeminiSetupModal()" class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300 transition">
+                        Cancel
+                    </button>
+                    <button onclick="saveGeminiIntegration()" class="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition" id="saveGeminiBtn" disabled>
+                        Next
+                    </button>
+                </div>
+            </div>
+            <div class="space-y-6 hidden" id="geminiStep2">
+                <div class="text-sm text-gray-600">
+                    <p class="font-semibold">Where to find your Gemini API key</p>
+                    <p class="mt-1">1. Go to the Google AI Studio website.</p>
+                    <p>2. Create a new API key for Gemini models.</p>
+                    <p>3. Copy the key (it usually starts with <span class="font-mono">AI</span>).</p>
+                    <p>4. Paste it below. We’ll encrypt it and store it only on this device.</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Gemini API Key</label>
+                    <input type="password" id="geminiApiKey" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Paste your Gemini API key" oninput="updateGeminiProgress()">
+                </div>
+                <div class="flex space-x-3">
+                    <button onclick="closeGeminiSetupModal()" class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300 transition">
+                        Cancel
+                    </button>
+                    <button onclick="saveGeminiIntegration()" class="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition" id="geminiAccessNextBtn" disabled>
+                        Next
+                    </button>
+                </div>
+            </div>
+            <div class="space-y-6 hidden" id="geminiStep3">
+                <div class="flex flex-col items-center justify-center text-sm text-gray-700 py-8">
+                    <div class="w-20 h-20 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin flex items-center justify-center mb-4">
+                        <i class="fas fa-lock text-indigo-600 text-2xl"></i>
+                    </div>
+                    <div class="text-center">
+                        <p class="font-semibold">Encrypting API Key</p>
+                        <p class="text-xs text-gray-500 mt-1">We’re securely encrypting your Gemini API key before saving it locally.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="geminiTermsModal" class="fixed inset-0 modal-overlay z-[880] hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl p-8 anim-fade-scale">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-gray-900">Gemini Integration Terms</h3>
+                <button onclick="closeGeminiTermsModal()" class="text-gray-400 hover:text-black transition">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+            <div class="text-sm text-gray-600 space-y-4 max-h-64 overflow-y-auto">
+                <p><strong>1. Data Usage</strong></p>
+                <p>Your Gemini API key is stored locally in your browser and is never sent to our servers. Requests you make from the AI chat go directly to Google.</p>
+                
+                <p><strong>2. API Limits & Billing</strong></p>
+                <p>This integration uses Google&apos;s Gemini API and is subject to their rate limits, pricing, and terms of service. You are responsible for any usage billed to your Google account.</p>
+                
+                <p><strong>3. Local Storage</strong></p>
+                <p>Your API key is encrypted and stored in your browser&apos;s local storage. If you clear your browser data, you&apos;ll need to re-enter your key.</p>
+                
+                <p><strong>4. Manual Installation</strong></p>
+                <p>If you use LiteStack on multiple devices, you must manually install this integration on each device by entering your API key.</p>
+                
+                <p><strong>5. Liability</strong></p>
+                <p>We are not responsible for any issues that may arise from the use of this integration, including but not limited to API errors, rate limiting, billing, or data loss.</p>
+            </div>
+            <div class="mt-6 flex justify-end">
+                <button onclick="closeGeminiTermsModal()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition">
                     I Understand
                 </button>
             </div>
@@ -585,7 +714,7 @@
                         </div>
                     </div>
 
-                    <div class="flex-1 relative">
+                    <div class="flex-1 relative flex">
                         <div id="codeEditorPanel" class="absolute inset-0">
                             <div id="monacoEditor" class="hidden absolute inset-0"></div>
                             <textarea id="fileEditor" class="hidden w-full h-full p-8 font-mono text-sm outline-none resize-none bg-gray-50" spellcheck="false"></textarea>
@@ -622,6 +751,36 @@
                                     </div>
                                     <div id="dropmePropsEmpty" class="text-sm text-gray-400">Select a block to edit.</div>
                                     <div id="dropmeProps" class="hidden space-y-4"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="aiChatPanel" class="hidden lg:flex flex-col w-80 border-l border-gray-100 bg-white absolute inset-y-0 right-0">
+                            <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-7 h-7 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-xs">
+                                        <i class="fas fa-magic"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs font-black uppercase tracking-widest text-indigo-600">AI Assistant</div>
+                                        <div class="text-[11px] text-gray-400">Gemini powered</div>
+                                    </div>
+                                </div>
+                                <button onclick="toggleAiChatCollapse()" class="text-gray-400 hover:text-black transition text-xs">
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+                            </div>
+                            <div id="aiChatMessages" class="flex-1 overflow-y-auto px-4 py-3 space-y-3 text-sm text-gray-800">
+                                <div class="text-xs text-gray-400 text-center mt-2">Ask about your current file, HTML, CSS, or deployment.</div>
+                            </div>
+                            <div class="border-t border-gray-100 p-3 bg-white">
+                                <textarea id="aiChatInput" class="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500" rows="2" placeholder="Ask Gemini for help with this project..."></textarea>
+                                <div class="flex items-center justify-between mt-2">
+                                    <div id="aiChatStatus" class="text-[10px] text-gray-400 font-mono truncate"></div>
+                                    <button onclick="sendAiChatMessage()" class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 transition flex items-center gap-1">
+                                        <i class="fas fa-paper-plane text-[10px]"></i>
+                                        Send
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -1949,24 +2108,53 @@
 
         // Integrations functionality
         let bitlySetupStep = 1;
+        let geminiSetupStep = 1;
+
         function openIntegrationsModal() {
-            // Check if Bitly is already integrated
             const bitlyData = JSON.parse(localStorage.getItem('litestack_bitly_integration') || '{}');
-            const bitlyBtn = document.getElementById('bitlyAddBtn');
-            if (bitlyData && bitlyData.agreedToTerms) {
-                if (bitlyBtn) {
-                    bitlyBtn.innerHTML = '<i class="fas fa-check mr-2"></i> Added';
-                    bitlyBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-                    bitlyBtn.classList.add('bg-green-600', 'hover:bg-green-700');
-                    bitlyBtn.disabled = true;
-                }
-            } else if (bitlyBtn) {
-                bitlyBtn.innerHTML = 'Add';
-                bitlyBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-                bitlyBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
-                bitlyBtn.disabled = false;
-                bitlyBtn.onclick = addBitlyIntegration;
+            const geminiData = JSON.parse(localStorage.getItem('litestack_gemini_integration') || '{}');
+
+            const bitlyStatusLabel = document.getElementById('bitlyStatusLabel');
+            const bitlyAddBtn = document.getElementById('bitlyAddBtn');
+            const bitlyRemoveBtn = document.getElementById('bitlyRemoveBtn');
+
+            const geminiStatusLabel = document.getElementById('geminiStatusLabel');
+            const geminiAddBtn = document.getElementById('geminiAddBtn');
+            const geminiRemoveBtn = document.getElementById('geminiRemoveBtn');
+
+            const bitlyInstalled = bitlyData && bitlyData.agreedToTerms;
+            const geminiInstalled = geminiData && geminiData.agreedToTerms;
+
+            if (bitlyStatusLabel) {
+                bitlyStatusLabel.textContent = bitlyInstalled ? 'Installed' : 'Not installed';
+                bitlyStatusLabel.classList.toggle('text-red-500', !bitlyInstalled);
+                bitlyStatusLabel.classList.toggle('text-emerald-600', bitlyInstalled);
             }
+            if (bitlyAddBtn && bitlyRemoveBtn) {
+                if (bitlyInstalled) {
+                    bitlyAddBtn.classList.add('hidden');
+                    bitlyRemoveBtn.classList.remove('hidden');
+                } else {
+                    bitlyAddBtn.classList.remove('hidden');
+                    bitlyRemoveBtn.classList.add('hidden');
+                }
+            }
+
+            if (geminiStatusLabel) {
+                geminiStatusLabel.textContent = geminiInstalled ? 'Installed' : 'Not installed';
+                geminiStatusLabel.classList.toggle('text-red-500', !geminiInstalled);
+                geminiStatusLabel.classList.toggle('text-emerald-600', geminiInstalled);
+            }
+            if (geminiAddBtn && geminiRemoveBtn) {
+                if (geminiInstalled) {
+                    geminiAddBtn.classList.add('hidden');
+                    geminiRemoveBtn.classList.remove('hidden');
+                } else {
+                    geminiAddBtn.classList.remove('hidden');
+                    geminiRemoveBtn.classList.add('hidden');
+                }
+            }
+
             document.getElementById('integrationsModal').classList.remove('hidden');
             document.getElementById('integrationsModal').classList.add('active');
         }
@@ -1985,16 +2173,41 @@
             if (shortenBtn) {
                 shortenBtn.remove();
             }
-            // Reset the button in integrations modal
-            const bitlyBtn = document.getElementById('bitlyAddBtn');
-            if (bitlyBtn) {
-                bitlyBtn.innerHTML = 'Add';
-                bitlyBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-                bitlyBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
-                bitlyBtn.disabled = false;
-                bitlyBtn.onclick = addBitlyIntegration;
+            // Reset UI in integrations modal if open
+            const bitlyStatusLabel = document.getElementById('bitlyStatusLabel');
+            const bitlyAddBtn = document.getElementById('bitlyAddBtn');
+            const bitlyRemoveBtn = document.getElementById('bitlyRemoveBtn');
+            if (bitlyStatusLabel) {
+                bitlyStatusLabel.textContent = 'Not installed';
+                bitlyStatusLabel.classList.remove('text-emerald-600');
+                bitlyStatusLabel.classList.add('text-red-500');
+            }
+            if (bitlyAddBtn && bitlyRemoveBtn) {
+                bitlyAddBtn.classList.remove('hidden');
+                bitlyRemoveBtn.classList.add('hidden');
             }
             showSuccess('Integration Removed', 'Bitly integration has been removed.');
+        }
+
+        function removeGeminiIntegration() {
+            localStorage.removeItem('litestack_gemini_integration');
+            const geminiStatusLabel = document.getElementById('geminiStatusLabel');
+            const geminiAddBtn = document.getElementById('geminiAddBtn');
+            const geminiRemoveBtn = document.getElementById('geminiRemoveBtn');
+            if (geminiStatusLabel) {
+                geminiStatusLabel.textContent = 'Not installed';
+                geminiStatusLabel.classList.remove('text-emerald-600');
+                geminiStatusLabel.classList.add('text-red-500');
+            }
+            if (geminiAddBtn && geminiRemoveBtn) {
+                geminiAddBtn.classList.remove('hidden');
+                geminiRemoveBtn.classList.add('hidden');
+            }
+            const aiPanel = document.getElementById('aiChatPanel');
+            const fab = document.getElementById('aiChatFab');
+            if (aiPanel) aiPanel.classList.add('hidden');
+            if (fab) fab.classList.add('hidden');
+            showSuccess('Integration Removed', 'Gemini integration has been removed.');
         }
 
         function addBitlyIntegration() {
@@ -2018,6 +2231,28 @@
             document.getElementById('bitlySetupModal').classList.remove('active');
             setTimeout(() => {
                 document.getElementById('bitlySetupModal').classList.add('hidden');
+            }, 300);
+        }
+
+        function addGeminiIntegration() {
+            closeIntegrationsModal();
+            document.getElementById('geminiTermsAgreement').checked = false;
+            document.getElementById('geminiLocalStorageAgreement').checked = false;
+            document.getElementById('geminiApiKey').value = '';
+            document.getElementById('geminiProgressBar').style.width = '20%';
+            document.getElementById('geminiStep1').classList.remove('hidden');
+            document.getElementById('geminiStep2').classList.add('hidden');
+            document.getElementById('geminiStep3').classList.add('hidden');
+            document.getElementById('saveGeminiBtn').disabled = true;
+            geminiSetupStep = 1;
+            document.getElementById('geminiSetupModal').classList.remove('hidden');
+            document.getElementById('geminiSetupModal').classList.add('active');
+        }
+
+        function closeGeminiSetupModal() {
+            document.getElementById('geminiSetupModal').classList.remove('active');
+            setTimeout(() => {
+                document.getElementById('geminiSetupModal').classList.add('hidden');
             }, 300);
         }
 
@@ -2125,6 +2360,103 @@
                     saveBtn.disabled = false;
                 }
             }
+
+        function updateGeminiProgress() {
+            const termsAgreed = document.getElementById('geminiTermsAgreement').checked;
+            const localStorageAgreed = document.getElementById('geminiLocalStorageAgreement').checked;
+            const apiKey = document.getElementById('geminiApiKey').value.trim();
+            const saveBtn = document.getElementById('saveGeminiBtn');
+            const accessNextBtn = document.getElementById('geminiAccessNextBtn');
+            const progressBar = document.getElementById('geminiProgressBar');
+
+            let progress = 20;
+            if (termsAgreed) progress += 30;
+            if (localStorageAgreed) progress += 30;
+            if (geminiSetupStep >= 2 && apiKey.length > 0) progress += 20;
+
+            progressBar.style.width = progress + '%';
+
+            if (geminiSetupStep === 1) {
+                saveBtn.disabled = !(termsAgreed && localStorageAgreed);
+            } else if (geminiSetupStep === 2) {
+                accessNextBtn.disabled = !(apiKey.length > 0);
+            }
+        }
+
+        async function saveGeminiIntegration() {
+            const termsAgreed = document.getElementById('geminiTermsAgreement').checked;
+            const localStorageAgreed = document.getElementById('geminiLocalStorageAgreement').checked;
+            const apiKeyInput = document.getElementById('geminiApiKey');
+            const apiKey = apiKeyInput.value.trim();
+            const step1 = document.getElementById('geminiStep1');
+            const step2 = document.getElementById('geminiStep2');
+            const step3 = document.getElementById('geminiStep3');
+            const saveBtn = document.getElementById('saveGeminiBtn');
+            const accessNextBtn = document.getElementById('geminiAccessNextBtn');
+
+            if (geminiSetupStep === 1) {
+                if (!termsAgreed || !localStorageAgreed) {
+                    showError('Agreement Required', 'Please agree to the terms and local storage policy.');
+                    return;
+                }
+                geminiSetupStep = 2;
+                step1.classList.add('hidden');
+                step2.classList.remove('hidden');
+                updateGeminiProgress();
+                return;
+            }
+
+            if (geminiSetupStep === 2) {
+                if (!apiKey) {
+                    showError('API Key Required', 'Please enter your Gemini API key.');
+                    apiKeyInput.focus();
+                    return;
+                }
+
+                geminiSetupStep = 3;
+                accessNextBtn.disabled = true;
+                step2.classList.add('hidden');
+                step3.classList.remove('hidden');
+
+                try {
+                    const [encrypted] = await Promise.all([
+                        encryptAccessCode(apiKey),
+                        new Promise(resolve => setTimeout(resolve, 3000))
+                    ]);
+
+                    const geminiData = {
+                        encryptedApiKey: encrypted,
+                        agreedToTerms: true,
+                        agreedToLocalStorage: true,
+                        createdAt: Date.now()
+                    };
+
+                    localStorage.setItem('litestack_gemini_integration', JSON.stringify(geminiData));
+                    closeGeminiSetupModal();
+                    showSuccess('Gemini Connected', 'AI chat is now available in the editor.');
+                    ensureAiChatVisibleIfConfigured();
+                } catch (e) {
+                    console.error('Failed to encrypt Gemini API key', e);
+                    showError('Encryption Error', 'Failed to encrypt and save your API key. Please try again.');
+                    geminiSetupStep = 2;
+                    step3.classList.add('hidden');
+                    step2.classList.remove('hidden');
+                    accessNextBtn.disabled = false;
+                }
+            }
+        }
+
+        function openGeminiTermsModal() {
+            document.getElementById('geminiTermsModal').classList.remove('hidden');
+            document.getElementById('geminiTermsModal').classList.add('active');
+        }
+
+        function closeGeminiTermsModal() {
+            document.getElementById('geminiTermsModal').classList.remove('active');
+            setTimeout(() => {
+                document.getElementById('geminiTermsModal').classList.add('hidden');
+            }, 300);
+        }
         }
 
         function addShortenUrlButton() {
@@ -2331,6 +2663,141 @@
             return dec.decode(decrypted);
         }
 
+        async function getGeminiApiKey() {
+            const geminiData = JSON.parse(localStorage.getItem('litestack_gemini_integration') || '{}');
+            if (!geminiData || !geminiData.encryptedApiKey) {
+                throw new Error('Gemini integration not configured');
+            }
+            return decryptAccessCode(geminiData.encryptedApiKey);
+        }
+
+        function ensureAiChatVisibleIfConfigured() {
+            const overlay = document.getElementById('editorOverlay');
+            const aiPanel = document.getElementById('aiChatPanel');
+            const fab = document.getElementById('aiChatFab');
+            const geminiData = JSON.parse(localStorage.getItem('litestack_gemini_integration') || '{}');
+            const enabled = !!geminiData && !!geminiData.agreedToTerms;
+
+            if (!overlay) return;
+
+            if (enabled) {
+                if (window.innerWidth >= 1024) {
+                    if (aiPanel) aiPanel.classList.remove('hidden');
+                    if (fab) {
+                        fab.classList.add('hidden');
+                        fab.classList.remove('scale-100');
+                    }
+                } else {
+                    if (aiPanel) aiPanel.classList.add('hidden');
+                    if (fab) {
+                        fab.classList.remove('hidden');
+                        requestAnimationFrame(() => {
+                            fab.classList.add('scale-100');
+                        });
+                    }
+                }
+            } else {
+                if (aiPanel) aiPanel.classList.add('hidden');
+                if (fab) fab.classList.add('hidden');
+            }
+        }
+
+        function toggleAiChatCollapse() {
+            const aiPanel = document.getElementById('aiChatPanel');
+            const fab = document.getElementById('aiChatFab');
+            if (!aiPanel || !fab) return;
+            aiPanel.classList.add('hidden');
+            fab.classList.remove('hidden');
+            fab.classList.add('scale-100');
+        }
+
+        function toggleAiChatFloating() {
+            const aiPanel = document.getElementById('aiChatPanel');
+            const fab = document.getElementById('aiChatFab');
+            if (!aiPanel || !fab) return;
+
+            if (aiPanel.classList.contains('hidden')) {
+                aiPanel.classList.remove('hidden');
+                fab.classList.add('scale-0');
+                fab.classList.add('hidden');
+                aiPanel.style.opacity = '0';
+                aiPanel.style.transform = 'scale(0.9) translateY(10px)';
+                aiPanel.style.transition = 'transform 180ms ease-out, opacity 180ms ease-out';
+                requestAnimationFrame(() => {
+                    aiPanel.style.opacity = '1';
+                    aiPanel.style.transform = 'scale(1) translateY(0)';
+                });
+            } else {
+                aiPanel.classList.add('hidden');
+                fab.classList.remove('hidden');
+                requestAnimationFrame(() => {
+                    fab.classList.remove('scale-0');
+                    fab.classList.add('scale-100');
+                });
+            }
+        }
+
+        async function sendAiChatMessage() {
+            const input = document.getElementById('aiChatInput');
+            const messagesEl = document.getElementById('aiChatMessages');
+            const statusEl = document.getElementById('aiChatStatus');
+            if (!input || !messagesEl) return;
+
+            const text = input.value.trim();
+            if (!text) return;
+
+            const userBubble = document.createElement('div');
+            userBubble.className = 'ml-auto max-w-[85%] rounded-2xl bg-indigo-600 text-white px-3 py-2 text-xs shadow-sm';
+            userBubble.textContent = text;
+            messagesEl.appendChild(userBubble);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+            input.value = '';
+
+            if (statusEl) statusEl.textContent = 'Calling Gemini...';
+
+            try {
+                const apiKey = await getGeminiApiKey();
+
+                const prompt = `You are the LiteStack site assistant. The user is editing the project "${currentProject?.name || ''}". Help them edit HTML/CSS/JS and deployment config in a concise way.\n\nUser: ${text}`;
+
+                const resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=' + encodeURIComponent(apiKey), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        contents: [
+                            {
+                                role: 'user',
+                                parts: [{ text: prompt }]
+                            }
+                        ]
+                    })
+                });
+
+                const data = await resp.json();
+                let reply = 'Sorry, something went wrong talking to Gemini.';
+                if (data && data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+                    reply = data.candidates[0].content.parts[0].text;
+                }
+
+                const aiBubble = document.createElement('div');
+                aiBubble.className = 'mr-auto max-w-[85%] rounded-2xl bg-gray-100 text-gray-900 px-3 py-2 text-xs shadow-sm whitespace-pre-wrap';
+                aiBubble.textContent = reply;
+                messagesEl.appendChild(aiBubble);
+                messagesEl.scrollTop = messagesEl.scrollHeight;
+                if (statusEl) statusEl.textContent = '';
+            } catch (e) {
+                console.error('Gemini error', e);
+                const aiBubble = document.createElement('div');
+                aiBubble.className = 'mr-auto max-w-[85%] rounded-2xl bg-red-50 text-red-700 px-3 py-2 text-xs shadow-sm';
+                aiBubble.textContent = 'Failed to reach Gemini. Check your API key and network, then try again.';
+                messagesEl.appendChild(aiBubble);
+                messagesEl.scrollTop = messagesEl.scrollHeight;
+                if (statusEl) statusEl.textContent = '';
+            }
+        }
+
         async function callBitlyApi(longUrl, customBacklink = '') {
             const bitlyData = JSON.parse(localStorage.getItem('litestack_bitly_integration') || '{}');
             if (!bitlyData || !bitlyData.encryptedAccessCode) {
@@ -2391,6 +2858,7 @@
                     addShortenUrlButton();
                 }, 1000);
             }
+            ensureAiChatVisibleIfConfigured();
         });
 
         function switchEditorTab(tab) {
