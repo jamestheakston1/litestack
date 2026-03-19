@@ -156,8 +156,8 @@
 
     <div id="errorModal" class="fixed inset-0 modal-overlay z-[300] hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-8 text-center anim-fade-scale">
-            <div class="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i class="fas fa-exclamation-triangle text-2xl"></i>
+            <div id="statusIconWrapper" class="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i id="statusIcon" class="fas fa-exclamation-triangle text-2xl"></i>
             </div>
             <h3 id="errorTitle" class="text-xl font-bold text-gray-900 mb-2">Error</h3>
             <p id="errorMessage" class="text-gray-500 mb-6 text-sm"></p>
@@ -258,8 +258,175 @@
                         </div>
                     </div>
                 </div>
-                <!-- Gemini integration was removed per latest requirements -->
+                <div class="p-5 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col justify-between">
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center">
+                            <i class="fab fa-github text-lg"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <div class="font-bold text-gray-900">GitHub</div>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700">Source</span>
+                            </div>
+                            <div class="text-xs text-gray-500 mt-1">Use a GitHub repo as your project source of truth.</div>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center justify-between">
+                        <div class="text-[11px] text-gray-400 font-mono">Status: <span id="githubStatusLabel" class="text-red-500">Not installed</span></div>
+                        <div class="space-x-2">
+                            <button id="githubRemoveBtn" onclick="removeGithubIntegration()" class="px-3 py-1.5 border border-gray-200 text-gray-600 rounded-lg text-xs font-bold hover:bg-gray-100 transition hidden">
+                                Remove
+                            </button>
+                            <button id="githubAddBtn" onclick="addGithubIntegration()" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition text-sm">
+                                Add
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-5 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col justify-between">
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-purple-50 text-purple-700 flex items-center justify-center">
+                            <i class="fas fa-code-branch text-lg"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <div class="font-bold text-gray-900">Actions</div>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700">Blocks</span>
+                            </div>
+                            <div class="text-xs text-gray-500 mt-1">Scratch-like block editing powered by DropMe.</div>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center justify-between">
+                        <div class="text-[11px] text-gray-400 font-mono">Status: <span id="actionsStatusLabel" class="text-red-500">Disabled</span></div>
+                        <div class="space-x-2">
+                            <button id="actionsRemoveBtn" onclick="removeActionsIntegration()" class="px-3 py-1.5 border border-gray-200 text-gray-600 rounded-lg text-xs font-bold hover:bg-gray-100 transition hidden">
+                                Disable
+                            </button>
+                            <button id="actionsAddBtn" onclick="addActionsIntegration()" class="px-4 py-2 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700 transition text-sm">
+                                Enable
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
+        </div>
+    </div>
+
+    <div id="githubSetupModal" class="fixed inset-0 modal-overlay z-[860] hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl p-8 anim-fade-scale">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-gray-900">Connect GitHub</h3>
+                <button onclick="closeGithubSetupModal()" class="text-gray-400 hover:text-black transition">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2 mb-4 overflow-hidden">
+                <div id="githubProgressBar" class="bg-blue-600 h-2 rounded-full transition-all duration-500 ease-out" style="width: 20%"></div>
+            </div>
+
+            <div class="space-y-6" id="githubStep1">
+                <div class="text-sm text-gray-600">
+                    <p>Use GitHub as your project source of truth.</p>
+                    <p class="mt-2">You’ll paste an access token below, and LiteStack will encrypt it and store it locally on this device.</p>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                    <input type="checkbox" id="githubTermsAgreement" class="rounded border-gray-300" onchange="updateGithubProgress()">
+                    <label for="githubTermsAgreement" class="text-sm text-gray-700">
+                        I agree to the <span class="text-blue-600 hover:text-blue-700 cursor-pointer underline" onclick="openGithubTermsModal()">integration terms</span>
+                    </label>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <input type="checkbox" id="githubLocalStorageAgreement" class="rounded border-gray-300" onchange="updateGithubProgress()">
+                    <label for="githubLocalStorageAgreement" class="text-sm text-gray-700">
+                        I understand the access token will be stored locally (encrypted).
+                    </label>
+                </div>
+
+                <div class="flex space-x-3">
+                    <button onclick="closeGithubSetupModal()" class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300 transition">
+                        Cancel
+                    </button>
+                    <button onclick="saveGithubIntegration()" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition" id="githubNextBtn" disabled>
+                        Next
+                    </button>
+                </div>
+            </div>
+
+            <div class="space-y-6 hidden" id="githubStep2">
+                <div class="text-sm text-gray-600">
+                    <p class="font-semibold">How to get your GitHub token</p>
+                    <p class="mt-1">1. Go to GitHub → Settings → Developer settings → Personal access tokens.</p>
+                    <p>2. Create a token with access to repositories (for public repos, you can use public scopes).</p>
+                    <p>3. Paste it below. We’ll encrypt it and store it only on this device.</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-2">GitHub Access Token</label>
+                    <input type="password" id="githubAccessToken" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Paste your GitHub token" oninput="updateGithubProgress()">
+                </div>
+                <div class="flex space-x-3">
+                    <button onclick="closeGithubSetupModal()" class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300 transition">
+                        Cancel
+                    </button>
+                    <button onclick="saveGithubIntegration()" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition" id="githubConnectBtn" disabled>
+                        Connect
+                    </button>
+                </div>
+            </div>
+
+            <div class="space-y-6 hidden" id="githubStep3">
+                <div id="githubEncryptingState" class="flex flex-col items-center justify-center text-sm text-gray-700 py-8">
+                    <div class="w-24 h-24 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin flex items-center justify-center mb-4">
+                        <i class="fas fa-lock text-blue-600 text-3xl"></i>
+                    </div>
+                    <div class="text-center">
+                        <p class="font-semibold">Encrypting GitHub Token</p>
+                        <p class="text-xs text-gray-500 mt-1">Please wait while we encrypt and save it locally.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="githubTermsModal" class="fixed inset-0 modal-overlay z-[885] hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl p-8 anim-fade-scale">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-gray-900">GitHub Integration Terms</h3>
+                <button onclick="closeGithubTermsModal()" class="text-gray-400 hover:text-black transition">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+            <div class="text-sm text-gray-600 space-y-4 max-h-64 overflow-y-auto">
+                <p><strong>1. Data Usage</strong></p>
+                <p>Your GitHub access token is encrypted and stored locally in your browser. It is not sent to our servers.</p>
+                <p><strong>2. Repo Source</strong></p>
+                <p>When you connect a repo, LiteStack pulls file contents into your project so you can deploy from them.</p>
+                <p><strong>3. Editing Mode</strong></p>
+                <p>While a project is sourced from GitHub, DropMe and the Code editor are disabled to prevent conflicts.</p>
+                <p><strong>4. Manual Installation</strong></p>
+                <p>If you use LiteStack on multiple devices, you must set up the GitHub integration on each device.</p>
+            </div>
+            <div class="mt-6 flex justify-end">
+                <button onclick="closeGithubTermsModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition">
+                    I Understand
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="githubRepoPickerModal" class="fixed inset-0 modal-overlay z-[920] hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-2xl rounded-3xl shadow-2xl p-8 anim-fade-scale">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h3 class="text-xl font-bold text-gray-900">Choose a GitHub repository</h3>
+                    <p class="text-xs text-gray-500 mt-1">We’ll pull the site source from the selected repo.</p>
+                </div>
+                <button onclick="closeGithubRepoPickerModal()" class="text-gray-400 hover:text-black transition">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+            <div id="githubRepoPickerStatus" class="text-sm text-gray-500 mb-4"></div>
+            <div id="githubRepoList" class="space-y-3 max-h-[60vh] overflow-y-auto"></div>
         </div>
     </div>
 
@@ -455,6 +622,12 @@
                     <i class="fas fa-file-code text-4xl mb-4 opacity-20"></i>
                     <p>Select a file to edit or create a new one.</p>
                 </div>
+                <div id="githubSourceOverlay" class="hidden absolute inset-0 bg-white z-[80] flex flex-col items-center justify-center text-center p-6">
+                    <i class="fab fa-github text-4xl text-slate-300 mb-4"></i>
+                    <h3 class="text-lg font-bold text-gray-900">GitHub source connected</h3>
+                    <p id="githubSourceOverlayText" class="text-sm text-gray-600 mt-2 max-w-lg"></p>
+                    <p class="text-xs text-gray-400 mt-4">To avoid conflicts, DropMe and the Code editor are disabled while this project is sourced from GitHub.</p>
+                </div>
                 <div id="projectSettingsPage" class="hidden absolute inset-0 bg-white">
                     <div class="h-full flex flex-col">
                         <div class="border-b border-gray-100 px-6 py-4 flex items-center justify-between">
@@ -558,6 +731,20 @@
                                     </div>
                                     <div class="mt-5 flex gap-3">
                                         <button onclick="applySeoToConfig()" class="px-4 py-2 rounded-xl bg-gray-900 text-white font-extrabold hover:bg-black transition">Save to config.json draft</button>
+                                    </div>
+                                </div>
+
+                                <div class="bg-white border border-gray-100 rounded-3xl p-6">
+                                    <div class="text-sm font-black text-gray-900 mb-2">GitHub source</div>
+                                    <div class="text-sm text-gray-500 mb-4">Connect a GitHub repository to pull your site source automatically. While connected, DropMe and the Code editor are disabled.</div>
+                                    <div id="githubProjectSourceHint" class="text-[12px] text-gray-500 mb-4 font-mono">Not connected</div>
+                                    <div class="flex items-center gap-3">
+                                        <button id="githubConnectProjectBtn" onclick="openGithubRepoPicker()" class="px-4 py-2 rounded-xl bg-blue-600 text-white font-extrabold hover:bg-blue-700 transition">
+                                            Connect to GitHub
+                                        </button>
+                                        <button id="githubDisconnectProjectBtn" onclick="disconnectGithubProjectSource()" class="px-4 py-2 rounded-xl bg-gray-100 text-gray-800 font-extrabold hover:bg-gray-200 transition hidden">
+                                            Disconnect
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -1260,7 +1447,22 @@
 
         function showError(title, msg) {
             document.getElementById('errorTitle').innerText = title;
-            document.getElementById('errorMessage').innerText = msg;
+            const msgEl = document.getElementById('errorMessage');
+            msgEl.innerText = msg;
+            const wrapper = document.getElementById('statusIconWrapper');
+            const icon = document.getElementById('statusIcon');
+            if (wrapper) {
+                wrapper.classList.remove('bg-green-100', 'text-green-600');
+                wrapper.classList.add('bg-red-50', 'text-red-500');
+            }
+            if (icon) {
+                icon.className = 'fas fa-exclamation-triangle text-2xl';
+            }
+            if (msgEl) {
+                msgEl.classList.remove('text-green-600');
+                msgEl.classList.remove('text-red-500');
+                msgEl.classList.add('text-gray-500');
+            }
             document.getElementById('errorModal').classList.remove('hidden');
         }
 
@@ -1364,6 +1566,7 @@
             document.getElementById('editorTabsShell')?.classList.add('hidden');
             document.getElementById('noFileSelected')?.classList.add('hidden');
             document.getElementById('projectSettingsPage')?.classList.remove('hidden');
+            applyGithubSourceMode();
 
             // Populate settings UI
             document.getElementById('settingThemePage').value = editorSettings.theme || 'vs-light';
@@ -1387,6 +1590,7 @@
             document.getElementById('projectSettingsPage')?.classList.add('hidden');
             if (currentEditingFile) document.getElementById('editorTabsShell')?.classList.remove('hidden');
             else document.getElementById('noFileSelected')?.classList.remove('hidden');
+            applyGithubSourceMode();
         }
 
         function saveProjectSettingsFromPage() {
@@ -1688,7 +1892,8 @@
                 projectFiles = data;
                 renderFileList();
                 const idx = projectFiles.find(f => f.name === 'index.html');
-                if (idx) editFile(idx.id);
+                applyGithubSourceMode();
+                if (idx && !(isGithubSourceActive && isGithubSourceActive())) editFile(idx.id);
             }
             
             // Check if Bitly integration is configured and add the button
@@ -1739,6 +1944,10 @@
         }
 
         async function addNewFile() {
+            if (isGithubSourceActive && isGithubSourceActive()) {
+                showError('Read-only project', 'This project is currently pulling from GitHub. Editing is disabled.');
+                return;
+            }
             const filename = await showPrompt('Create new file', 'Enter file name (e.g. style.css):', 'e.g. style.css', 'Create');
             if (filename) {
                 if (filename.trim().toLowerCase() === 'config.json') {
@@ -1760,6 +1969,11 @@
         }
 
         function editFile(id) {
+            if (isGithubSourceActive && isGithubSourceActive()) {
+                applyGithubSourceMode();
+                return;
+            }
+
             const file = projectFiles.find(f => f.id === id);
             currentEditingFile = file;
             const editor = document.getElementById('fileEditor');
@@ -1834,6 +2048,10 @@
         }
 
         async function deleteFile(id) {
+            if (isGithubSourceActive && isGithubSourceActive()) {
+                showError('Read-only project', 'This project is currently pulling from GitHub. Editing and deleting files are disabled.');
+                return;
+            }
             if (projectFiles.length <= 1) return;
             const ok = await showConfirm('Delete file?', 'This will remove the file from your project.', 'Delete', 'Cancel');
             if (!ok) return;
@@ -1952,6 +2170,8 @@
 
         function openIntegrationsModal() {
             const bitlyData = JSON.parse(localStorage.getItem('litestack_bitly_integration') || '{}');
+            const githubData = JSON.parse(localStorage.getItem('litestack_github_integration') || '{}');
+            const actionsEnabled = localStorage.getItem('litestack_actions_enabled') === 'true';
 
             const bitlyStatusLabel = document.getElementById('bitlyStatusLabel');
             const bitlyAddBtn = document.getElementById('bitlyAddBtn');
@@ -1971,6 +2191,43 @@
                 } else {
                     bitlyAddBtn.classList.remove('hidden');
                     bitlyRemoveBtn.classList.add('hidden');
+                }
+            }
+
+            const githubStatusLabel = document.getElementById('githubStatusLabel');
+            const githubAddBtn = document.getElementById('githubAddBtn');
+            const githubRemoveBtn = document.getElementById('githubRemoveBtn');
+            const githubInstalled = githubData && githubData.agreedToTerms;
+            if (githubStatusLabel) {
+                githubStatusLabel.textContent = githubInstalled ? 'Installed' : 'Not installed';
+                githubStatusLabel.classList.toggle('text-red-500', !githubInstalled);
+                githubStatusLabel.classList.toggle('text-emerald-600', githubInstalled);
+            }
+            if (githubAddBtn && githubRemoveBtn) {
+                if (githubInstalled) {
+                    githubAddBtn.classList.add('hidden');
+                    githubRemoveBtn.classList.remove('hidden');
+                } else {
+                    githubAddBtn.classList.remove('hidden');
+                    githubRemoveBtn.classList.add('hidden');
+                }
+            }
+
+            const actionsStatusLabel = document.getElementById('actionsStatusLabel');
+            const actionsAddBtn = document.getElementById('actionsAddBtn');
+            const actionsRemoveBtn = document.getElementById('actionsRemoveBtn');
+            if (actionsStatusLabel) {
+                actionsStatusLabel.textContent = actionsEnabled ? 'Enabled' : 'Disabled';
+                actionsStatusLabel.classList.toggle('text-red-500', !actionsEnabled);
+                actionsStatusLabel.classList.toggle('text-emerald-600', actionsEnabled);
+            }
+            if (actionsAddBtn && actionsRemoveBtn) {
+                if (actionsEnabled) {
+                    actionsAddBtn.classList.add('hidden');
+                    actionsRemoveBtn.classList.remove('hidden');
+                } else {
+                    actionsAddBtn.classList.remove('hidden');
+                    actionsRemoveBtn.classList.add('hidden');
                 }
             }
 
@@ -2007,6 +2264,370 @@
             }
             showSuccess('Integration Removed', 'Bitly integration has been removed.');
             // Reload so project cards and buttons instantly reflect removal
+            window.location.reload();
+        }
+
+        function addActionsIntegration() {
+            localStorage.setItem('litestack_actions_enabled', 'true');
+            closeIntegrationsModal();
+            showSuccess('Actions Enabled', 'DropMe block editing is now available.');
+            window.location.reload();
+        }
+
+        function removeActionsIntegration() {
+            localStorage.removeItem('litestack_actions_enabled');
+            closeIntegrationsModal();
+            showSuccess('Actions Disabled', 'DropMe block editing has been disabled.');
+            window.location.reload();
+        }
+
+        let githubSetupStep = 1;
+
+        function addGithubIntegration() {
+            closeIntegrationsModal();
+            githubSetupStep = 1;
+            document.getElementById('githubTermsAgreement').checked = false;
+            document.getElementById('githubLocalStorageAgreement').checked = false;
+            document.getElementById('githubAccessToken').value = '';
+            document.getElementById('githubProgressBar').style.width = '20%';
+            document.getElementById('githubNextBtn').disabled = true;
+            document.getElementById('githubConnectBtn').disabled = true;
+            document.getElementById('githubStep1').classList.remove('hidden');
+            document.getElementById('githubStep2').classList.add('hidden');
+            document.getElementById('githubStep3').classList.add('hidden');
+            document.getElementById('githubSetupModal').classList.remove('hidden');
+            document.getElementById('githubSetupModal').classList.add('active');
+        }
+
+        function closeGithubSetupModal() {
+            document.getElementById('githubSetupModal').classList.remove('active');
+            setTimeout(() => {
+                document.getElementById('githubSetupModal').classList.add('hidden');
+            }, 300);
+        }
+
+        function openGithubTermsModal() {
+            document.getElementById('githubTermsModal').classList.remove('hidden');
+            document.getElementById('githubTermsModal').classList.add('active');
+        }
+
+        function closeGithubTermsModal() {
+            document.getElementById('githubTermsModal').classList.remove('active');
+            setTimeout(() => {
+                document.getElementById('githubTermsModal').classList.add('hidden');
+            }, 300);
+        }
+
+        function updateGithubProgress() {
+            const step1TermsAgreed = document.getElementById('githubTermsAgreement')?.checked;
+            const step1LocalAgreed = document.getElementById('githubLocalStorageAgreement')?.checked;
+            const token = document.getElementById('githubAccessToken')?.value?.trim() || '';
+            const progressBar = document.getElementById('githubProgressBar');
+
+            let progress = 20;
+            if (step1TermsAgreed) progress += 35;
+            if (step1LocalAgreed) progress += 25;
+            if (githubSetupStep >= 2 && token.length > 0) progress += 20;
+            progressBar.style.width = progress + '%';
+
+            const nextBtn = document.getElementById('githubNextBtn');
+            const connectBtn = document.getElementById('githubConnectBtn');
+            if (githubSetupStep === 1) {
+                if (nextBtn) nextBtn.disabled = !(step1TermsAgreed && step1LocalAgreed);
+            }
+            if (githubSetupStep === 2) {
+                if (connectBtn) connectBtn.disabled = !(token.length > 0);
+            }
+        }
+
+        async function saveGithubIntegration() {
+            const termsAgreed = document.getElementById('githubTermsAgreement').checked;
+            const localAgreed = document.getElementById('githubLocalStorageAgreement').checked;
+            const accessToken = document.getElementById('githubAccessToken').value.trim();
+            const step1 = document.getElementById('githubStep1');
+            const step2 = document.getElementById('githubStep2');
+            const step3 = document.getElementById('githubStep3');
+            const nextBtn = document.getElementById('githubNextBtn');
+            const connectBtn = document.getElementById('githubConnectBtn');
+
+            if (githubSetupStep === 1) {
+                if (!termsAgreed || !localAgreed) {
+                    showError('Agreement Required', 'Please agree to the GitHub integration terms and local storage policy.');
+                    return;
+                }
+                githubSetupStep = 2;
+                step1.classList.add('hidden');
+                step2.classList.remove('hidden');
+                updateGithubProgress();
+                return;
+            }
+
+            if (githubSetupStep === 2) {
+                if (!accessToken) {
+                    showError('Access Token Required', 'Please paste your GitHub access token.');
+                    return;
+                }
+
+                githubSetupStep = 3;
+                if (nextBtn) nextBtn.disabled = true;
+                if (connectBtn) connectBtn.disabled = true;
+                step2.classList.add('hidden');
+                step3.classList.remove('hidden');
+
+                try {
+                    const [encrypted] = await Promise.all([
+                        encryptAccessCode(accessToken),
+                        new Promise(resolve => setTimeout(resolve, 3000))
+                    ]);
+
+                    localStorage.setItem('litestack_github_integration', JSON.stringify({
+                        encryptedAccessToken: encrypted,
+                        agreedToTerms: true,
+                        agreedToLocalStorage: true,
+                        createdAt: Date.now()
+                    }));
+
+                    closeGithubSetupModal();
+                    showSuccess('GitHub Connected', 'Open a project → Settings → “Connect to GitHub” to select a repo.');
+                } catch (e) {
+                    console.error('GitHub encryption failed', e);
+                    showError('Encryption Error', 'Failed to encrypt and save your GitHub token. Please try again.');
+                    githubSetupStep = 2;
+                    step3.classList.add('hidden');
+                    step2.classList.remove('hidden');
+                    if (connectBtn) connectBtn.disabled = false;
+                }
+            }
+        }
+
+        function removeGithubIntegration() {
+            localStorage.removeItem('litestack_github_integration');
+            window.location.reload();
+        }
+
+        function isActionsEnabled() {
+            return localStorage.getItem('litestack_actions_enabled') === 'true';
+        }
+
+        function getGithubProjectSourceKey(projectId) {
+            return `litestack_github_project_source_${projectId}`;
+        }
+
+        function getGithubProjectSource(projectId) {
+            try {
+                const raw = localStorage.getItem(getGithubProjectSourceKey(projectId));
+                if (!raw) return null;
+                const parsed = JSON.parse(raw);
+                return parsed && parsed.fullName ? parsed : null;
+            } catch {
+                return null;
+            }
+        }
+
+        function isGithubSourceActive() {
+            if (!currentProject) return false;
+            return !!getGithubProjectSource(currentProject.id);
+        }
+
+        function applyGithubSourceMode() {
+            const overlay = document.getElementById('githubSourceOverlay');
+            const overlayText = document.getElementById('githubSourceOverlayText');
+            const editorTabsShell = document.getElementById('editorTabsShell');
+            const settingsPage = document.getElementById('projectSettingsPage');
+            const tabCodeBtn = document.getElementById('tabCodeBtn');
+            const tabDropBtn = document.getElementById('tabDropBtn');
+            const hint = document.getElementById('githubProjectSourceHint');
+            const connectBtn = document.getElementById('githubConnectProjectBtn');
+            const disconnectBtn = document.getElementById('githubDisconnectProjectBtn');
+
+            const src = currentProject ? getGithubProjectSource(currentProject.id) : null;
+            const hasGithubIntegration = !!(JSON.parse(localStorage.getItem('litestack_github_integration') || '{}')?.agreedToTerms);
+            const active = !!src;
+
+            if (hint) {
+                hint.textContent = active ? `Connected: ${src.fullName}` : 'Not connected';
+            }
+            if (connectBtn) connectBtn.disabled = !hasGithubIntegration || active;
+            if (disconnectBtn) disconnectBtn.classList.toggle('hidden', !active);
+
+            if (!overlay || !overlayText || !editorTabsShell) return;
+
+            if (active) {
+                const fullName = src.fullName;
+                overlayText.textContent = `Your site is currently pulling from your GitHub repository ${fullName}. Editing is disabled while this project is sourced from GitHub.`;
+                overlay.classList.remove('hidden');
+                currentEditingFile = null;
+                if (tabCodeBtn) tabCodeBtn.disabled = true;
+                if (tabDropBtn) tabDropBtn.disabled = true;
+                editorTabsShell.classList.add('hidden');
+                document.getElementById('fileEditor')?.classList.add('hidden');
+                document.getElementById('monacoEditor')?.classList.add('hidden');
+
+                // Don’t block the settings overlay (so they can disconnect)
+                if (settingsPage && !settingsPage.classList.contains('hidden')) {
+                    overlay.classList.add('hidden');
+                }
+            } else {
+                overlay.classList.add('hidden');
+                if (tabCodeBtn) tabCodeBtn.disabled = false;
+                if (tabDropBtn) tabDropBtn.disabled = !isActionsEnabled();
+                const noFileSelected = document.getElementById('noFileSelected');
+                const showTabs = !!currentEditingFile;
+                if (editorTabsShell) editorTabsShell.classList.toggle('hidden', !showTabs);
+                if (noFileSelected) noFileSelected.classList.toggle('hidden', showTabs);
+            }
+        }
+
+        async function pullGithubRepoFilesIntoProject(owner, repo, fullName) {
+            // Pull a small "site source" set. Expand later if you want full repo sync.
+            const filesToTry = [
+                'index.html',
+                'style.css',
+                'script.js',
+                'config.json',
+                '404.html',
+                'robots.txt',
+                '_worker.js'
+            ];
+
+            const githubData = JSON.parse(localStorage.getItem('litestack_github_integration') || '{}');
+            const token = await decryptAccessCode(githubData.encryptedAccessToken);
+
+            const headers = {
+                'Accept': 'application/vnd.github+json',
+                'Authorization': `token ${token}`
+            };
+
+            const repoResp = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers });
+            const repoJson = await repoResp.json();
+            const branch = repoJson?.default_branch || 'main';
+
+            const pulled = [];
+            for (const path of filesToTry) {
+                const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch)}`;
+                const resp = await fetch(url, { headers });
+                if (!resp.ok) continue;
+                const json = await resp.json();
+                if (!json || !json.content) continue;
+                const decoded = atob(json.content.replace(/\\n/g, ''));
+                pulled.push({ name: path, content: decoded });
+            }
+
+            if (!pulled.find(f => f.name === 'index.html')) {
+                pulled.push({ name: 'index.html', content: '<!doctype html><html><head><title>LiteStack</title></head><body><h1>GitHub pull failed: index.html missing</h1></body></html>' });
+            }
+            if (!pulled.find(f => f.name === 'config.json')) {
+                pulled.push({ name: 'config.json', content: JSON.stringify({ description: '', faviconUrl: '', themeColor: '#2563eb', password: '', devices: { mobile: true, tablet: true, desktop: true } }, null, 2) });
+            }
+
+            // Replace current project files
+            await supabaseClient.from('project_files').delete().eq('project_id', currentProject.id);
+            await supabaseClient.from('project_files').insert(
+                pulled.map(f => ({ project_id: currentProject.id, name: f.name, content: f.content }))
+            );
+
+            // Clear local drafts and refresh view
+            clearDraftsForProject(currentProject.id);
+            const { data, error } = await supabaseClient
+                .from('project_files')
+                .select('*')
+                .eq('project_id', currentProject.id);
+            if (error) throw new Error(error.message || 'Failed to load updated files');
+
+            projectFiles = data || [];
+            renderFileList();
+            updatePreviewChangesButton();
+        }
+
+        async function openGithubRepoPicker() {
+            if (!currentProject) return;
+            const githubData = JSON.parse(localStorage.getItem('litestack_github_integration') || '{}');
+            const tokenOk = !!(githubData && githubData.agreedToTerms && githubData.encryptedAccessToken);
+            if (!tokenOk) {
+                showError('GitHub Not Connected', 'Install the GitHub integration first from the Integrations page.');
+                return;
+            }
+
+            document.getElementById('githubRepoPickerModal').classList.remove('hidden');
+            document.getElementById('githubRepoPickerModal').classList.add('active');
+            document.getElementById('githubRepoPickerStatus').textContent = 'Loading your repositories...';
+            document.getElementById('githubRepoList').innerHTML = '';
+
+            try {
+                const token = await decryptAccessCode(githubData.encryptedAccessToken);
+                const headers = {
+                    'Accept': 'application/vnd.github+json',
+                    'Authorization': `token ${token}`
+                };
+                const resp = await fetch('https://api.github.com/user/repos?per_page=100', { headers });
+                const json = await resp.json();
+                if (!resp.ok) throw new Error(json?.message || 'Failed to load repos');
+
+                const repos = Array.isArray(json) ? json : [];
+                if (repos.length === 0) {
+                    document.getElementById('githubRepoPickerStatus').textContent = 'No repositories found for this account.';
+                    return;
+                }
+
+                document.getElementById('githubRepoPickerStatus').textContent = 'Select a repo:';
+                document.getElementById('githubRepoList').innerHTML = repos.map(r => {
+                    const fullName = r.full_name || `${r.owner?.login || ''}/${r.name || ''}`;
+                    const name = r.name || '';
+                    const desc = r.description || '';
+                    return `
+                        <button onclick="connectGithubRepoToProject('${fullName.replace(/'/g, "\\'")}')" class="w-full text-left p-3 rounded-2xl border border-gray-100 bg-white hover:bg-gray-50 transition">
+                            <div class="font-extrabold text-gray-900 truncate">${name || fullName}</div>
+                            <div class="text-xs text-gray-500 truncate">${fullName}</div>
+                            ${desc ? `<div class="text-xs text-gray-400 mt-1 truncate">${desc}</div>` : ''}
+                        </button>
+                    `;
+                }).join('');
+            } catch (e) {
+                console.error('GitHub repo picker failed', e);
+                document.getElementById('githubRepoPickerStatus').textContent = 'Failed to load repositories. Check token permissions and try again.';
+                showError('GitHub Error', e?.message || 'Failed to load repositories.');
+            }
+        }
+
+        function closeGithubRepoPickerModal() {
+            document.getElementById('githubRepoPickerModal').classList.remove('active');
+            setTimeout(() => {
+                document.getElementById('githubRepoPickerModal').classList.add('hidden');
+            }, 300);
+        }
+
+        async function connectGithubRepoToProject(fullName) {
+            if (!currentProject) return;
+            const [owner, repo] = String(fullName || '').split('/');
+            if (!owner || !repo) return;
+
+            const statusEl = document.getElementById('githubRepoPickerStatus');
+            statusEl.textContent = `Connecting ${fullName} and pulling site source...`;
+
+            try {
+                await pullGithubRepoFilesIntoProject(owner, repo, fullName);
+
+                localStorage.setItem(getGithubProjectSourceKey(currentProject.id), JSON.stringify({
+                    fullName,
+                    username: owner,
+                    repo,
+                    updatedAt: Date.now()
+                }));
+
+                // Ensure editing is disabled + UI message appears
+                applyGithubSourceMode();
+                closeGithubRepoPickerModal();
+                showSuccess('GitHub repo connected', `Your project is now pulling from ${fullName}.`);
+            } catch (e) {
+                console.error('GitHub repo connect failed', e);
+                showError('GitHub Sync Failed', e?.message || 'Failed to pull files from the repository.');
+            }
+        }
+
+        function disconnectGithubProjectSource() {
+            if (!currentProject) return;
+            localStorage.removeItem(getGithubProjectSourceKey(currentProject.id));
+            showSuccess('GitHub Disconnected', 'This project is no longer sourced from GitHub.');
             window.location.reload();
         }
 
@@ -2147,7 +2768,9 @@
 
         function addShortenUrlButton() {
             // Add the Shorten URL button next to Manage Files in the editor
-            const editorButtons = document.querySelector('.flex.items-center.space-x-3');
+            const overlay = document.getElementById('editorOverlay');
+            if (!overlay || overlay.classList.contains('hidden')) return;
+            const editorButtons = overlay.querySelector('.flex.items-center.space-x-3');
             if (editorButtons) {
                 // Check if button already exists
                 if (!document.getElementById('shortenUrlBtn')) {
@@ -2165,10 +2788,22 @@
             const titleEl = document.getElementById('errorTitle');
             const msgEl = document.getElementById('errorMessage');
             const modal = document.getElementById('errorModal');
-            
+
             titleEl.innerText = title;
             msgEl.innerText = msg;
+
+            const wrapper = document.getElementById('statusIconWrapper');
+            const icon = document.getElementById('statusIcon');
+            if (wrapper) {
+                wrapper.classList.remove('bg-red-50', 'text-red-500');
+                wrapper.classList.add('bg-green-100', 'text-green-600');
+            }
+            if (icon) {
+                icon.className = 'fas fa-check text-2xl';
+            }
+
             msgEl.classList.remove('text-red-500');
+            msgEl.classList.remove('text-gray-500');
             msgEl.classList.add('text-green-600');
             modal.classList.remove('hidden');
         }
@@ -2281,6 +2916,8 @@
         }
 
         async function getBitlyEncryptionKey() {
+            if (window.__litestack_bitly_enc_key_promise) return window.__litestack_bitly_enc_key_promise;
+            window.__litestack_bitly_enc_key_promise = (async () => {
             const enc = new TextEncoder();
             const passphrase = 'litestack-bitly-v1';
             const salt = enc.encode('bitly-salt');
@@ -2305,6 +2942,8 @@
                 false,
                 ['encrypt', 'decrypt']
             );
+            })();
+            return window.__litestack_bitly_enc_key_promise;
         }
 
         async function encryptAccessCode(plain) {
@@ -2413,6 +3052,16 @@
         });
 
         function switchEditorTab(tab) {
+            if (isGithubSourceActive && isGithubSourceActive()) {
+                applyGithubSourceMode();
+                return;
+            }
+
+            if (tab === 'drop' && !isActionsEnabled()) {
+                showError('Actions disabled', 'Enable the Actions integration to use DropMe scratch-like blocks.');
+                return;
+            }
+
             editorActiveTab = tab === 'drop' ? 'drop' : 'code';
 
             const tabCodeBtn = document.getElementById('tabCodeBtn');
