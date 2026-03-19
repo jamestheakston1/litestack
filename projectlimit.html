@@ -72,7 +72,7 @@
 
             const { data: projects } = await supabaseClient
                 .from('projects')
-                .select('name, project_id')
+                .select('id, name')
                 .eq('user_id', session.user.id);
 
             const list = document.getElementById('projectList');
@@ -83,7 +83,7 @@
                 list.innerHTML = projects.map(p => `
                     <div class="bg-white p-6 rounded-2xl flex justify-between items-center shadow-sm">
                         <span class="font-extrabold">${p.name}</span>
-                        <code class="text-xs bg-slate-50 px-3 py-1 rounded-lg text-slate-500">${p.project_id}</code>
+                        <code class="text-xs bg-slate-50 px-3 py-1 rounded-lg text-slate-500">${p.id}</code>
                     </div>
                 `).join('');
                 
