@@ -43,7 +43,7 @@
 
     <div id="auth-overlay">
         <div class="loader mb-4"></div>
-        <p class="text-gray-600 font-medium">Authenticating with GitHub...</p>
+        <p id="auth-status-text" class="text-gray-600 font-medium">Authenticating with GitHub...</p>
     </div>
 
     <div id="main-layout" class="min-h-screen flex flex-col md:flex-row hidden">
@@ -194,16 +194,20 @@
     <script>
         const SUPABASE_URL = 'https://sykhfbuvevixbxfrbysa.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_mocH3Iz2GQ_FQaB0d8LbEQ_szHXLp93';
-        
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         async function handleLogin() {
-            await supabaseClient.auth.signInWithOAuth({
+            const { error } = await supabaseClient.auth.signInWithOAuth({
                 provider: 'github',
                 options: {
-                    scopes: 'read:user user:email'
+                    scopes: 'read:user user:email',
+                    redirectTo: window.location.href
                 }
             });
+            if (error) {
+                document.getElementById('auth-status-text').innerText = "Auth failed. Please refresh.";
+                console.error(error);
+            }
         }
 
         async function handleLogout() {
@@ -239,13 +243,16 @@
             try {
                 const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
                 
-                if (authError || !user || !user.user_metadata || Object.keys(user.user_metadata).length === 0) {
-                    throw new Error("No user metadata available");
-                }
+                if (authError || !user) throw new Error("No user");
 
                 const metadata = user.user_metadata;
+                
+                if (!metadata || !metadata.user_name) {
+                    throw new Error("Missing GitHub scopes");
+                }
+
                 document.getElementById('gh-avatar').src = metadata.avatar_url || 'https://github.com/identicons/user.png';
-                document.getElementById('gh-name').innerText = metadata.full_name || metadata.name || 'User Name';
+                document.getElementById('gh-name').innerText = metadata.full_name || metadata.name || 'GitHub User';
                 document.getElementById('gh-username').innerText = '@' + (metadata.user_name || 'username');
                 document.getElementById('display-name').innerText = metadata.full_name || metadata.name || 'Not provided';
                 document.getElementById('display-email').innerText = user.email || 'Private';
@@ -254,7 +261,7 @@
                 loader.classList.add('hidden');
                 form.classList.remove('hidden');
             } catch (err) {
-                console.warn("GitHub Profile sync failed:", err);
+                console.warn("Profile Sync Error:", err);
                 loader.classList.add('hidden');
                 noAccess.classList.remove('hidden');
             }
@@ -264,21 +271,25 @@
             const loader = document.getElementById('permissions-loader');
             const list = document.getElementById('permissions-list');
 
-            if (!loader || !list) return;
-
             loader.classList.remove('hidden');
             list.classList.add('hidden');
 
             try {
                 const { data: { user } } = await supabaseClient.auth.getUser();
+                const metadata = user?.user_metadata || {};
                 
-                list.innerHTML = '';
+                const hasEmail = !!user?.email;
+                const hasProfile = !!metadata?.user_name;
+
                 const displayData = [
-                    { name: 'GitHub OAuth Scope', description: 'Read-only access to your public profile and email.', status: 'Active', icon: 'fa-github' },
-                    { name: 'Identity Verification', description: 'LiteStack identifies you via your GitHub UID.', status: 'Active', icon: 'fa-id-card' }
+                    { name: 'Public Profile', description: 'Access to username, name, and bio.', status: hasProfile ? 'Active' : 'Missing', icon: 'fa-user' },
+                    { name: 'Email Address', description: 'Access to your GitHub primary email.', status: hasEmail ? 'Active' : 'Missing', icon: 'fa-envelope' },
+                    { name: 'Auth Identity', description: 'LiteStack identifies you via GitHub UID.', status: 'Active', icon: 'fa-id-card' }
                 ];
 
+                list.innerHTML = '';
                 displayData.forEach(item => {
+                    const isActive = item.status === 'Active';
                     const row = document.createElement('div');
                     row.className = 'p-6 flex items-start justify-between';
                     row.innerHTML = `
@@ -291,17 +302,32 @@
                                 <p class="text-sm text-gray-500">${item.description}</p>
                             </div>
                         </div>
-                        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700">Active</span>
+                        <span class="px-3 py-1 text-xs font-semibold rounded-full ${isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+                            ${item.status}
+                        </span>
                     `;
                     list.appendChild(row);
                 });
+
+                if (!hasEmail || !hasProfile) {
+                    const warning = document.createElement('div');
+                    warning.className = 'p-6 bg-amber-50 border-t border-amber-100 flex items-center justify-between';
+                    warning.innerHTML = `
+                        <div class="flex items-center text-amber-800 text-sm">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>
+                            <span>Some permissions are missing. LiteStack currently doesn't have access to your user data.</span>
+                        </div>
+                        <button onclick="handleLogin()" class="text-xs font-bold uppercase tracking-wider text-amber-900 bg-amber-200 px-3 py-1 rounded hover:bg-amber-300">Grant Access</button>
+                    `;
+                    list.appendChild(warning);
+                }
 
                 loader.classList.add('hidden');
                 list.classList.remove('hidden');
             } catch (err) {
                 loader.classList.add('hidden');
                 list.classList.remove('hidden');
-                list.innerHTML = '<div class="p-10 text-center text-gray-500">LiteStack currently doesn\'t have access to your permissions data.</div>';
+                list.innerHTML = '<div class="p-10 text-center text-gray-500">Error loading permissions.</div>';
             }
         };
 
