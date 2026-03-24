@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Settings</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .settings-content { display: none; }
+        .settings-content.active { display: block; }
+        .nav-link.active {
+            background-color: #f3f4f6;
+            color: #2563eb;
+            border-right: 4px solid #2563eb;
+        }
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 3px solid #2563eb;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #auth-overlay {
+            position: fixed;
+            inset: 0;
+            background: white;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans antialiased">
+
+    <div id="auth-overlay">
+        <div class="loader mb-4"></div>
+        <p class="text-gray-600 font-medium">Authenticating with GitHub...</p>
+    </div>
+
+    <div id="main-layout" class="min-h-screen flex flex-col md:flex-row hidden">
+        <aside class="w-full md:w-64 bg-white border-r border-gray-200">
+            <div class="p-6">
+                <h1 class="text-xl font-bold text-gray-800">Settings</h1>
+            </div>
+            <nav class="mt-2">
+                <a href="javascript:void(0)" onclick="showSection('profile', this)" class="nav-link active flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50 transition-colors">
+                    <i class="fas fa-user w-5 mr-3"></i>
+                    <span>Profile</span>
+                </a>
+                <a href="javascript:void(0)" onclick="showSection('security', this)" class="nav-link flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50 transition-colors">
+                    <i class="fas fa-shield-alt w-5 mr-3"></i>
+                    <span>Security</span>
+                </a>
+                <a href="javascript:void(0)" onclick="showSection('permissions', this)" class="nav-link flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50 transition-colors">
+                    <i class="fas fa-key w-5 mr-3"></i>
+                    <span>Permissions</span>
+                </a>
+                <a href="javascript:void(0)" onclick="showSection('notifications', this)" class="nav-link flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50 transition-colors">
+                    <i class="fas fa-bell w-5 mr-3"></i>
+                    <span>Notifications</span>
+                </a>
+                <a href="javascript:void(0)" onclick="showSection('billing', this)" class="nav-link flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50 transition-colors">
+                    <i class="fas fa-credit-card w-5 mr-3"></i>
+                    <span>Billing</span>
+                </a>
+            </nav>
+            <div class="absolute bottom-0 w-64 p-4 border-t border-gray-100">
+                <button onclick="handleLogout()" class="flex items-center text-sm text-red-600 hover:text-red-800 transition-colors">
+                    <i class="fas fa-sign-out-alt mr-2"></i> Sign Out
+                </button>
+            </div>
+        </aside>
+
+        <main class="flex-1 p-4 md:p-10">
+            <div id="profile" class="settings-content active max-w-4xl">
+                <div class="mb-8">
+                    <h2 class="text-2xl font-semibold text-gray-800">Profile Information</h2>
+                    <p class="text-gray-500">Your profile data is synced from GitHub.</p>
+                </div>
+                
+                <div id="profile-container" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div id="profile-loader" class="p-20 flex flex-col items-center justify-center">
+                        <div class="loader mb-4"></div>
+                        <p class="text-gray-500">Syncing with GitHub...</p>
+                    </div>
+
+                    <div id="no-access-state" class="hidden p-20 text-center">
+                        <div class="bg-gray-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fab fa-github text-3xl text-gray-400"></i>
+                        </div>
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">Access Restricted</h3>
+                        <p class="text-gray-500 max-w-xs mx-auto">LiteStack currently doesn't have access to your user data.</p>
+                        <button onclick="handleLogin()" class="mt-6 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-black transition-colors">
+                            <i class="fab fa-github mr-2"></i> Request Additional Permissions
+                        </button>
+                    </div>
+
+                    <div id="profile-form" class="hidden">
+                        <div class="p-6 space-y-6">
+                            <div class="flex items-center space-x-6">
+                                <div class="relative">
+                                    <img id="gh-avatar" src="" alt="Avatar" class="w-24 h-24 rounded-full border-2 border-gray-100">
+                                    <div class="absolute bottom-0 right-0 bg-gray-900 text-white rounded-full p-1.5 shadow-sm border-2 border-white">
+                                        <i class="fab fa-github text-xs"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h3 id="gh-name" class="font-bold text-xl text-gray-900"></h3>
+                                    <p id="gh-username" class="text-blue-600 font-medium"></p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-500 mb-1 uppercase tracking-wider">Full Name</label>
+                                    <div id="display-name" class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 font-medium"></div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-500 mb-1 uppercase tracking-wider">Public Email</label>
+                                    <div id="display-email" class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 font-medium"></div>
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="block text-sm font-medium text-gray-500 mb-1 uppercase tracking-wider">Bio</label>
+                                    <div id="display-bio" class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 min-h-[80px]"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 px-6 py-4 flex items-center justify-between">
+                            <p class="text-xs text-gray-400">Editing is disabled. Changes must be made on GitHub.</p>
+                            <a href="https://github.com/settings/profile" target="_blank" class="text-sm font-medium text-blue-600 hover:text-blue-800">
+                                View GitHub Profile <i class="fas fa-external-link-alt ml-1 text-xs"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="security" class="settings-content max-w-4xl">
+                <div class="mb-8">
+                    <h2 class="text-2xl font-semibold text-gray-800">Security</h2>
+                    <p class="text-gray-500">Authentication is managed via GitHub OAuth.</p>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+                    <i class="fas fa-shield-virus text-gray-300 text-4xl mb-4"></i>
+                    <p class="text-gray-600">Your account is secured by GitHub. Password resets and 2FA settings are managed directly through your GitHub account security portal.</p>
+                    <a href="https://github.com/settings/security" target="_blank" class="mt-4 inline-block px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">Manage GitHub Security</a>
+                </div>
+            </div>
+
+            <div id="permissions" class="settings-content max-w-4xl">
+                <div class="mb-8">
+                    <h2 class="text-2xl font-semibold text-gray-800">App Permissions</h2>
+                    <p class="text-gray-500">Review what information LiteStack can access.</p>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div id="permissions-loader" class="p-12 flex flex-col items-center justify-center">
+                        <div class="loader mb-4"></div>
+                    </div>
+                    <div id="permissions-list" class="hidden divide-y divide-gray-100"></div>
+                </div>
+            </div>
+
+            <div id="notifications" class="settings-content max-w-4xl">
+                <div class="mb-8">
+                    <h2 class="text-2xl font-semibold text-gray-800">Notifications</h2>
+                    <p class="text-gray-500">Control system alerts.</p>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
+                    <p class="text-gray-600">System notifications are sent to your GitHub primary email.</p>
+                </div>
+            </div>
+
+            <div id="billing" class="settings-content max-w-4xl">
+                <div class="mb-8">
+                    <h2 class="text-2xl font-semibold text-gray-800">Billing</h2>
+                    <p class="text-gray-500">Manage subscription.</p>
+                </div>
+                <div class="bg-blue-50 border border-blue-200 p-6 rounded-xl">
+                    <p class="text-blue-800 font-medium">Free Tier Account</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://sykhfbuvevixbxfrbysa.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_mocH3Iz2GQ_FQaB0d8LbEQ_szHXLp93';
+        
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        async function handleLogin() {
+            await supabaseClient.auth.signInWithOAuth({
+                provider: 'github',
+                options: {
+                    scopes: 'read:user user:email'
+                }
+            });
+        }
+
+        async function handleLogout() {
+            await supabaseClient.auth.signOut();
+            window.location.reload();
+        }
+
+        window.showSection = function(sectionId, element) {
+            document.querySelectorAll('.settings-content').forEach(section => {
+                section.classList.remove('active');
+            });
+            const target = document.getElementById(sectionId);
+            if(target) target.classList.add('active');
+
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            if (element) element.classList.add('active');
+
+            if (sectionId === 'permissions') fetchPermissions();
+            if (sectionId === 'profile') syncGithubProfile();
+        };
+
+        async function syncGithubProfile() {
+            const loader = document.getElementById('profile-loader');
+            const form = document.getElementById('profile-form');
+            const noAccess = document.getElementById('no-access-state');
+
+            loader.classList.remove('hidden');
+            form.classList.add('hidden');
+            noAccess.classList.add('hidden');
+
+            try {
+                const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+                
+                if (authError || !user || !user.user_metadata || Object.keys(user.user_metadata).length === 0) {
+                    throw new Error("No user metadata available");
+                }
+
+                const metadata = user.user_metadata;
+                document.getElementById('gh-avatar').src = metadata.avatar_url || 'https://github.com/identicons/user.png';
+                document.getElementById('gh-name').innerText = metadata.full_name || metadata.name || 'User Name';
+                document.getElementById('gh-username').innerText = '@' + (metadata.user_name || 'username');
+                document.getElementById('display-name').innerText = metadata.full_name || metadata.name || 'Not provided';
+                document.getElementById('display-email').innerText = user.email || 'Private';
+                document.getElementById('display-bio').innerText = metadata.bio || 'No bio provided on GitHub.';
+
+                loader.classList.add('hidden');
+                form.classList.remove('hidden');
+            } catch (err) {
+                console.warn("GitHub Profile sync failed:", err);
+                loader.classList.add('hidden');
+                noAccess.classList.remove('hidden');
+            }
+        }
+
+        window.fetchPermissions = async function() {
+            const loader = document.getElementById('permissions-loader');
+            const list = document.getElementById('permissions-list');
+
+            if (!loader || !list) return;
+
+            loader.classList.remove('hidden');
+            list.classList.add('hidden');
+
+            try {
+                const { data: { user } } = await supabaseClient.auth.getUser();
+                
+                list.innerHTML = '';
+                const displayData = [
+                    { name: 'GitHub OAuth Scope', description: 'Read-only access to your public profile and email.', status: 'Active', icon: 'fa-github' },
+                    { name: 'Identity Verification', description: 'LiteStack identifies you via your GitHub UID.', status: 'Active', icon: 'fa-id-card' }
+                ];
+
+                displayData.forEach(item => {
+                    const row = document.createElement('div');
+                    row.className = 'p-6 flex items-start justify-between';
+                    row.innerHTML = `
+                        <div class="flex items-start space-x-4">
+                            <div class="bg-gray-100 p-3 rounded-lg text-gray-500">
+                                <i class="fas ${item.icon} text-lg"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-gray-900">${item.name}</h4>
+                                <p class="text-sm text-gray-500">${item.description}</p>
+                            </div>
+                        </div>
+                        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700">Active</span>
+                    `;
+                    list.appendChild(row);
+                });
+
+                loader.classList.add('hidden');
+                list.classList.remove('hidden');
+            } catch (err) {
+                loader.classList.add('hidden');
+                list.classList.remove('hidden');
+                list.innerHTML = '<div class="p-10 text-center text-gray-500">LiteStack currently doesn\'t have access to your permissions data.</div>';
+            }
+        };
+
+        window.onload = async () => {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            
+            if (!session) {
+                handleLogin();
+            } else {
+                document.getElementById('auth-overlay').classList.add('hidden');
+                document.getElementById('main-layout').classList.remove('hidden');
+                syncGithubProfile();
+            }
+        };
+    </script>
+</body>
+</html>
