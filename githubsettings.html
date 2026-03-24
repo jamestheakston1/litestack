@@ -218,7 +218,6 @@
                 if (error) throw error;
             } catch (err) {
                 console.error("Login Error:", err);
-                alert("Could not start GitHub login. Please check your browser settings.");
             }
         }
 
@@ -254,10 +253,10 @@
 
             try {
                 const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-                if (authError || !user) throw new Error("No user");
+                if (authError || !user) throw new Error("No user found");
 
                 const metadata = user.user_metadata;
-                if (!metadata || !metadata.user_name) throw new Error("Missing scopes");
+                if (!metadata || !metadata.user_name) throw new Error("Metadata missing");
 
                 document.getElementById('gh-avatar').src = metadata.avatar_url || 'https://github.com/identicons/user.png';
                 document.getElementById('gh-name').innerText = metadata.full_name || metadata.name || 'GitHub User';
@@ -324,16 +323,30 @@
             }
         };
 
+        const showLoginTrigger = () => {
+            document.getElementById('auth-loading').classList.add('hidden');
+            document.getElementById('auth-trigger').classList.remove('hidden');
+        };
+
         window.onload = async () => {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            
-            if (!session) {
-                document.getElementById('auth-loading').classList.add('hidden');
-                document.getElementById('auth-trigger').classList.remove('hidden');
-            } else {
-                document.getElementById('auth-overlay').classList.add('hidden');
-                document.getElementById('main-layout').classList.remove('hidden');
-                syncGithubProfile();
+            const timeout = setTimeout(() => {
+                showLoginTrigger();
+            }, 3000);
+
+            try {
+                const { data: { session }, error } = await supabaseClient.auth.getSession();
+                clearTimeout(timeout);
+                
+                if (error || !session) {
+                    showLoginTrigger();
+                } else {
+                    document.getElementById('auth-overlay').classList.add('hidden');
+                    document.getElementById('main-layout').classList.remove('hidden');
+                    syncGithubProfile();
+                }
+            } catch (err) {
+                clearTimeout(timeout);
+                showLoginTrigger();
             }
         };
     </script>
