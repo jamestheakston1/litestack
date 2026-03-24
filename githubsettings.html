@@ -42,8 +42,18 @@
 <body class="bg-gray-50 font-sans antialiased">
 
     <div id="auth-overlay">
-        <div class="loader mb-4"></div>
-        <p id="auth-status-text" class="text-gray-600 font-medium">Authenticating with GitHub...</p>
+        <div id="auth-loading">
+            <div class="loader mx-auto mb-4"></div>
+            <p class="text-gray-600 font-medium text-center">Checking session...</p>
+        </div>
+        <div id="auth-trigger" class="hidden text-center p-6">
+            <i class="fab fa-github text-5xl text-gray-900 mb-6"></i>
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">Login Required</h2>
+            <p class="text-gray-500 mb-8 max-w-sm">Please connect your GitHub account to access LiteStack settings.</p>
+            <button onclick="handleLogin()" class="w-full bg-gray-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-black transition-all flex items-center justify-center">
+                <i class="fab fa-github mr-3 text-xl"></i> Continue with GitHub
+            </button>
+        </div>
     </div>
 
     <div id="main-layout" class="min-h-screen flex flex-col md:flex-row hidden">
@@ -197,16 +207,18 @@
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         async function handleLogin() {
-            const { error } = await supabaseClient.auth.signInWithOAuth({
-                provider: 'github',
-                options: {
-                    scopes: 'read:user user:email',
-                    redirectTo: window.location.href
-                }
-            });
-            if (error) {
-                document.getElementById('auth-status-text').innerText = "Auth failed. Please refresh.";
-                console.error(error);
+            try {
+                const { error } = await supabaseClient.auth.signInWithOAuth({
+                    provider: 'github',
+                    options: {
+                        scopes: 'read:user user:email',
+                        redirectTo: window.location.origin + window.location.pathname
+                    }
+                });
+                if (error) throw error;
+            } catch (err) {
+                console.error("Login Error:", err);
+                alert("Could not start GitHub login. Please check your browser settings.");
             }
         }
 
@@ -242,14 +254,10 @@
 
             try {
                 const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-                
                 if (authError || !user) throw new Error("No user");
 
                 const metadata = user.user_metadata;
-                
-                if (!metadata || !metadata.user_name) {
-                    throw new Error("Missing GitHub scopes");
-                }
+                if (!metadata || !metadata.user_name) throw new Error("Missing scopes");
 
                 document.getElementById('gh-avatar').src = metadata.avatar_url || 'https://github.com/identicons/user.png';
                 document.getElementById('gh-name').innerText = metadata.full_name || metadata.name || 'GitHub User';
@@ -261,7 +269,6 @@
                 loader.classList.add('hidden');
                 form.classList.remove('hidden');
             } catch (err) {
-                console.warn("Profile Sync Error:", err);
                 loader.classList.add('hidden');
                 noAccess.classList.remove('hidden');
             }
@@ -270,21 +277,18 @@
         window.fetchPermissions = async function() {
             const loader = document.getElementById('permissions-loader');
             const list = document.getElementById('permissions-list');
-
             loader.classList.remove('hidden');
             list.classList.add('hidden');
 
             try {
                 const { data: { user } } = await supabaseClient.auth.getUser();
                 const metadata = user?.user_metadata || {};
-                
                 const hasEmail = !!user?.email;
                 const hasProfile = !!metadata?.user_name;
 
                 const displayData = [
                     { name: 'Public Profile', description: 'Access to username, name, and bio.', status: hasProfile ? 'Active' : 'Missing', icon: 'fa-user' },
-                    { name: 'Email Address', description: 'Access to your GitHub primary email.', status: hasEmail ? 'Active' : 'Missing', icon: 'fa-envelope' },
-                    { name: 'Auth Identity', description: 'LiteStack identifies you via GitHub UID.', status: 'Active', icon: 'fa-id-card' }
+                    { name: 'Email Address', description: 'Access to your GitHub primary email.', status: hasEmail ? 'Active' : 'Missing', icon: 'fa-envelope' }
                 ];
 
                 list.innerHTML = '';
@@ -302,9 +306,7 @@
                                 <p class="text-sm text-gray-500">${item.description}</p>
                             </div>
                         </div>
-                        <span class="px-3 py-1 text-xs font-semibold rounded-full ${isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
-                            ${item.status}
-                        </span>
+                        <span class="px-3 py-1 text-xs font-semibold rounded-full ${isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${item.status}</span>
                     `;
                     list.appendChild(row);
                 });
@@ -312,22 +314,13 @@
                 if (!hasEmail || !hasProfile) {
                     const warning = document.createElement('div');
                     warning.className = 'p-6 bg-amber-50 border-t border-amber-100 flex items-center justify-between';
-                    warning.innerHTML = `
-                        <div class="flex items-center text-amber-800 text-sm">
-                            <i class="fas fa-exclamation-triangle mr-2"></i>
-                            <span>Some permissions are missing. LiteStack currently doesn't have access to your user data.</span>
-                        </div>
-                        <button onclick="handleLogin()" class="text-xs font-bold uppercase tracking-wider text-amber-900 bg-amber-200 px-3 py-1 rounded hover:bg-amber-300">Grant Access</button>
-                    `;
+                    warning.innerHTML = `<p class="text-amber-800 text-sm">Permissions missing.</p><button onclick="handleLogin()" class="text-xs font-bold bg-amber-200 px-3 py-1 rounded">Grant Access</button>`;
                     list.appendChild(warning);
                 }
-
                 loader.classList.add('hidden');
                 list.classList.remove('hidden');
             } catch (err) {
                 loader.classList.add('hidden');
-                list.classList.remove('hidden');
-                list.innerHTML = '<div class="p-10 text-center text-gray-500">Error loading permissions.</div>';
             }
         };
 
@@ -335,7 +328,8 @@
             const { data: { session } } = await supabaseClient.auth.getSession();
             
             if (!session) {
-                handleLogin();
+                document.getElementById('auth-loading').classList.add('hidden');
+                document.getElementById('auth-trigger').classList.remove('hidden');
             } else {
                 document.getElementById('auth-overlay').classList.add('hidden');
                 document.getElementById('main-layout').classList.remove('hidden');
